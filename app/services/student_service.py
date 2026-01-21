@@ -1,0 +1,309 @@
+from dataclasses import dataclass
+from typing import Dict, List
+import json
+
+from fastapi import Depends
+from sqlalchemy import func
+from sqlalchemy.orm import aliased, Session
+
+from app.connectors.database_connector import get_db
+from app.entities.student import Student
+from app.entities.batch_student import BatchStudent
+from app.entities.user import User
+from app.models.base_response_model import SuccessMessageResponse
+from app.models.student_models import (
+    GetMappedBatchStudentResponse,
+    GetStudentResponse,
+    MapStudentToBatchRequest,
+    StudentRequest,
+    UpdatedBatchStudentRequest,
+)
+from app.utils.constants import (
+    MAPPING_NOT_FOUND,
+    STUDENT_ALREADY_EXISTS_IN_THE_BATCH,
+    STUDENT_BATCH_DETAILS_CREATED_SUCCESSFULLY,
+    STUDENT_BATCH_DETAILS_DELETED_SUCCESSFULLY,
+    STUDENT_BATCH_DETAILS_UPDATED_SUCCESSFULLY,
+    STUDENT_CREATED_SUCCESSFULLY,
+    STUDENT_DELETED_SUCCESSFULLY,
+    STUDENT_DETAILS_ALREADY_EXISTS,
+    STUDENT_NOT_FOUND,
+    STUDENT_UPDATED_SUCCESSFULLY,
+)
+from app.utils.db_queries import (
+    get_mapped_batch_student,
+    get_student,
+    get_student_by_id,
+    get_student_in_batch,
+    get_students,
+)
+from app.utils.helpers import get_all_users_dict
+from app.utils.validation import validate_data_exits, validate_data_not_found
+from app.utils.redis_client import redis_client
+
+
+@dataclass
+class StudentService:
+    db: Session = Depends(get_db)
+
+    # ---------------- CREATE ----------------
+    def create_student(
+        self, request: StudentRequest, logged_in_user_id: int
+    ) -> SuccessMessageResponse:
+        student_details = get_student_by_id(self.db, request.user_id)
+        validate_data_exits(student_details, STUDENT_DETAILS_ALREADY_EXISTS)
+
+        new_student = Student(
+            user_id=request.user_id,
+            degree=request.degree,
+            specialization=request.specialization,
+            passout_year=request.passout_year,
+            city=request.city,
+            state=request.state,
+            referral_by=request.referral_by,
+            created_by=logged_in_user_id,
+            updated_by=logged_in_user_id,
+        )
+        self.db.add(new_student)
+        self.db.commit()
+
+        # 🔥 cache invalidation
+        redis_client.delete("cache:students:all")
+
+        return SuccessMessageResponse(message=STUDENT_CREATED_SUCCESSFULLY)
+
+    # ---------------- HELPER ----------------
+    def get_student_response(
+        self, student: Student, users: Dict[int, str]
+    ) -> GetStudentResponse:
+        return GetStudentResponse(
+            id=student.id,
+            name=users.get(student.user_id),
+            degree=student.degree,
+            specialization=student.specialization,
+            passout_year=student.passout_year,
+            city=student.city,
+            state=student.state,
+            referral_by=users.get(student.referral_by),
+            created_at=student.created_at,
+            created_by=users.get(student.created_by),
+            updated_at=student.updated_at,
+            updated_by=users.get(student.updated_by),
+            is_active=student.is_active,
+        )
+
+    # ---------------- GET ALL STUDENTS (CACHED) ----------------
+    def get_all_students(self) -> List[GetStudentResponse]:
+        cache_key = "cache:students:all"
+        cached = redis_client.get(cache_key)
+
+        if cached:
+            return [GetStudentResponse(**item) for item in json.loads(cached)]
+
+        students = get_students(self.db)
+        users = get_all_users_dict(self.db)
+
+        response = [self.get_student_response(student, users) for student in students]
+
+        redis_client.setex(cache_key, 60, json.dumps([r.dict() for r in response]))
+        return response
+
+    # ---------------- GET STUDENT BY ID (CACHED) ----------------
+    def get_student_by_id(self, student_id: int) -> GetStudentResponse:
+        cache_key = f"cache:students:{student_id}"
+        cached = redis_client.get(cache_key)
+
+        if cached:
+            return GetStudentResponse(**json.loads(cached))
+
+        student = get_student(self.db, student_id)
+        validate_data_not_found(student, STUDENT_NOT_FOUND)
+
+        users = get_all_users_dict(self.db)
+        response = self.get_student_response(student, users)
+
+        redis_client.setex(cache_key, 60, json.dumps(response.dict()))
+        return response
+
+    # ---------------- UPDATE ----------------
+    def update_student_by_id(
+        self, student_id: int, request: StudentRequest, logged_in_user_id: int
+    ) -> SuccessMessageResponse:
+        student = get_student(self.db, student_id)
+        validate_data_not_found(student, STUDENT_NOT_FOUND)
+
+        for key, value in request.dict().items():
+            setattr(student, key, value)
+
+        student.updated_at = func.now()
+        student.updated_by = logged_in_user_id
+        self.db.commit()
+
+        # 🔥 cache invalidation
+        redis_client.delete("cache:students:all")
+        redis_client.delete(f"cache:students:{student_id}")
+
+        return SuccessMessageResponse(message=STUDENT_UPDATED_SUCCESSFULLY)
+
+    # ---------------- DELETE ----------------
+    def delete_student_by_id(self, student_id: int) -> SuccessMessageResponse:
+        student = get_student(self.db, student_id)
+        validate_data_not_found(student, STUDENT_NOT_FOUND)
+
+        self.db.delete(student)
+        self.db.commit()
+
+        # 🔥 cache invalidation
+        redis_client.delete("cache:students:all")
+        redis_client.delete(f"cache:students:{student_id}")
+
+        return SuccessMessageResponse(message=STUDENT_DELETED_SUCCESSFULLY)
+
+    # ---------------- MAP STUDENT TO BATCH ----------------
+    def map_student_to_batch(
+        self, student_id: int, request: MapStudentToBatchRequest, logged_in_user_id: int
+    ) -> SuccessMessageResponse:
+        student = get_student(self.db, student_id)
+        validate_data_not_found(student, STUDENT_NOT_FOUND)
+
+        existing_student = get_student_in_batch(self.db, student_id, request.batch_id)
+        validate_data_exits(existing_student, STUDENT_ALREADY_EXISTS_IN_THE_BATCH)
+
+        student_batch = BatchStudent(
+            batch_id=request.batch_id,
+            student_id=student_id,
+            class_amount=request.class_amount,
+            amount_paid=request.amount_paid,
+            mentor_amount=request.mentor_amount,
+            referral_by=request.referral_by,
+            referral_percentage=request.referral_percentage,
+            referral_amount=request.referral_amount,
+            joined_at=request.joined_at,
+            created_by=logged_in_user_id,
+            updated_by=logged_in_user_id,
+        )
+
+        self.db.add(student_batch)
+        self.db.commit()
+
+        # 🔥 cache invalidation
+        redis_client.delete(f"cache:batch:{request.batch_id}")
+
+        return SuccessMessageResponse(
+            message=STUDENT_BATCH_DETAILS_CREATED_SUCCESSFULLY
+        )
+
+    # ---------------- HELPER ----------------
+    def get_batch_student_response(
+        self,
+        student_user: User,
+        student_batch: BatchStudent,
+        users_dict: Dict[int, str],
+    ) -> GetMappedBatchStudentResponse:
+        return GetMappedBatchStudentResponse(
+            id=student_batch.id,
+            name=student_user.name,
+            gender=student_user.gender,
+            email=student_user.email,
+            phone_number=student_user.phone_number,
+            class_amount=student_batch.class_amount,
+            mentor_amount=student_batch.mentor_amount,
+            balance_amount=student_batch.balance_amount,
+            referral_by=users_dict.get(student_batch.referral_by),
+            referral_percentage=student_batch.referral_percentage,
+            referral_amount=student_batch.referral_amount,
+            joined_at=student_batch.joined_at,
+            created_at=student_batch.created_at,
+            created_by=users_dict.get(student_batch.created_by),
+            updated_at=student_batch.updated_at,
+            updated_by=users_dict.get(student_batch.updated_by),
+        )
+
+    # ---------------- GET BATCH STUDENTS (CACHED) ----------------
+    def get_batch_students(self, batch_id: int) -> List[GetMappedBatchStudentResponse]:
+        cache_key = f"cache:batch:{batch_id}"
+        cached = redis_client.get(cache_key)
+
+        if cached:
+            return [
+                GetMappedBatchStudentResponse(**item) for item in json.loads(cached)
+            ]
+
+        StudentUser = aliased(User)
+        results = (
+            self.db.query(Student, StudentUser, BatchStudent)
+            .join(BatchStudent, Student.id == BatchStudent.student_id)
+            .join(StudentUser, Student.user_id == StudentUser.id)
+            .filter(BatchStudent.batch_id == batch_id)
+            .all()
+        )
+
+        users_dict = get_all_users_dict(self.db)
+
+        response = [
+            self.get_batch_student_response(student_user, student_batch, users_dict)
+            for _, student_user, student_batch in results
+        ]
+
+        redis_client.setex(cache_key, 60, json.dumps([r.dict() for r in response]))
+        return response
+
+    # ---------------- GET BATCH STUDENT BY ID (CACHED) ----------------
+    def get_batch_student_by_id(self, mapping_id: int) -> GetMappedBatchStudentResponse:
+        cache_key = f"cache:batch_student:{mapping_id}"
+        cached = redis_client.get(cache_key)
+
+        if cached:
+            return GetMappedBatchStudentResponse(**json.loads(cached))
+
+        student_batch = get_mapped_batch_student(self.db, mapping_id)
+        validate_data_not_found(student_batch, MAPPING_NOT_FOUND)
+
+        student = get_student(self.db, student_batch.student_id)
+        users_dict = get_all_users_dict(self.db)
+
+        response = self.get_batch_student_response(student, student_batch, users_dict)
+
+        redis_client.setex(cache_key, 60, json.dumps(response.dict()))
+        return response
+
+    # ---------------- UPDATE BATCH ----------------
+    def update_batch_student_by_id(
+        self,
+        mapping_id: int,
+        request: UpdatedBatchStudentRequest,
+        logged_in_user_id: int,
+    ) -> SuccessMessageResponse:
+        student_batch = get_mapped_batch_student(self.db, mapping_id)
+        validate_data_not_found(student_batch, MAPPING_NOT_FOUND)
+
+        student_batch.class_amount = request.amount
+        student_batch.joined_at = request.joined_at
+        student_batch.updated_at = func.now()
+        student_batch.updated_by = logged_in_user_id
+        self.db.commit()
+
+        # 🔥 cache invalidation
+        redis_client.delete(f"cache:batch_student:{mapping_id}")
+        redis_client.delete(f"cache:batch:{student_batch.batch_id}")
+
+        return SuccessMessageResponse(
+            message=STUDENT_BATCH_DETAILS_UPDATED_SUCCESSFULLY
+        )
+
+    # ---------------- DELETE BATCH ----------------
+    def delete_batch_student_by_id(self, mapping_id: int) -> SuccessMessageResponse:
+        student_batch = get_mapped_batch_student(self.db, mapping_id)
+        validate_data_not_found(student_batch, MAPPING_NOT_FOUND)
+
+        batch_id = student_batch.batch_id
+        self.db.delete(student_batch)
+        self.db.commit()
+
+        # 🔥 cache invalidation
+        redis_client.delete(f"cache:batch_student:{mapping_id}")
+        redis_client.delete(f"cache:batch:{batch_id}")
+
+        return SuccessMessageResponse(
+            message=STUDENT_BATCH_DETAILS_DELETED_SUCCESSFULLY
+        )

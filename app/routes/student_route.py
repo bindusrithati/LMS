@@ -44,136 +44,119 @@ async def create_student(
 async def get_all_students(
     service: StudentService = Depends(StudentService),
 ) -> ApiResponse[List[GetStudentResponse]]:
-    return ApiResponse(data=service.get_all_students())
+
+    data = await service.get_all_students()  # ✅ await
+    return ApiResponse(data=data)
 
 
 # ---------------- GET STUDENT BY ID (NO RATE LIMIT – CACHED) ----------------
 @router.get(
     "/{student_id}",
     response_model=ApiResponse[GetStudentResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Retrieve student by id",
 )
 async def get_student_by_id(
     student_id: PositiveInt,
     service: StudentService = Depends(StudentService),
-) -> ApiResponse[GetStudentResponse]:
-    return ApiResponse(data=service.get_student_by_id(student_id))
+):
+    data = await service.get_student_by_id(student_id)
+    return ApiResponse(data=data)
 
 
 # ---------------- UPDATE STUDENT (RATE LIMITED) ----------------
 @router.put(
     "/{student_id}",
     response_model=ApiResponse[SuccessMessageResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Update student by id",
-    dependencies=[Depends(rate_limiter("students:update", 5, 60))],
 )
 async def update_student_by_id(
     request_state: Request,
     student_id: PositiveInt,
     request: StudentRequest,
     service: StudentService = Depends(StudentService),
-) -> ApiResponse[SuccessMessageResponse]:
-    logged_in_user_id = request_state.state.user.id
-    return ApiResponse(
-        data=service.update_student_by_id(student_id, request, logged_in_user_id)
-    )
+):
+    user_id = request_state.state.user.id
+    data = await service.update_student_by_id(student_id, request, user_id)
+    return ApiResponse(data=data)
 
 
 # ---------------- DELETE STUDENT (RATE LIMITED) ----------------
 @router.delete(
     "/{student_id}",
     response_model=ApiResponse[SuccessMessageResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Delete student by id",
-    dependencies=[Depends(rate_limiter("students:delete", 5, 60))],
 )
 async def delete_student_by_id(
     student_id: PositiveInt,
     service: StudentService = Depends(StudentService),
-) -> ApiResponse[SuccessMessageResponse]:
-    return ApiResponse(data=service.delete_student_by_id(student_id))
+):
+    data = await service.delete_student_by_id(student_id)
+    return ApiResponse(data=data)
 
 
 # ---------------- MAP STUDENT TO BATCH (RATE LIMITED) ----------------
 @router.post(
     "/{student_id}/batches",
     response_model=ApiResponse[SuccessMessageResponse],
-    status_code=status.HTTP_201_CREATED,
-    summary="Map student to a batch",
-    dependencies=[Depends(rate_limiter("students:batch:create", 5, 60))],
 )
 async def map_student_to_batch(
     student_id: PositiveInt,
     request_state: Request,
     request: MapStudentToBatchRequest,
     service: StudentService = Depends(StudentService),
-) -> ApiResponse[SuccessMessageResponse]:
-    logged_in_user_id = request_state.state.user.id
-    return ApiResponse(
-        data=service.map_student_to_batch(student_id, request, logged_in_user_id)
-    )
+):
+    user_id = request_state.state.user.id
+    data = await service.map_student_to_batch(student_id, request, user_id)
+    return ApiResponse(data=data)
 
 
 # ---------------- GET BATCH STUDENTS (NO RATE LIMIT – CACHED) ----------------
 @router.get(
     "/batches/{batch_id}",
     response_model=ApiResponse[List[GetMappedBatchStudentResponse]],
-    status_code=status.HTTP_200_OK,
-    summary="Retrieve all students mapped to a batch",
 )
 async def get_batch_students(
     batch_id: PositiveInt,
     service: StudentService = Depends(StudentService),
-) -> ApiResponse[List[GetMappedBatchStudentResponse]]:
-    return ApiResponse(data=service.get_batch_students(batch_id))
+):
+    data = await service.get_batch_students(batch_id)
+    return ApiResponse(data=data)
 
 
 # ---------------- GET BATCH STUDENT BY ID (NO RATE LIMIT – CACHED) ----------------
 @router.get(
     "/mappings/{mapping_id}",
     response_model=ApiResponse[GetMappedBatchStudentResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Retrieve a student-batch mapping by ID",
 )
 async def get_batch_student_by_id(
     mapping_id: PositiveInt,
     service: StudentService = Depends(StudentService),
-) -> ApiResponse[GetMappedBatchStudentResponse]:
-    return ApiResponse(data=service.get_batch_student_by_id(mapping_id))
+):
+    data = await service.get_batch_student_by_id(mapping_id)
+    return ApiResponse(data=data)
 
 
 # ---------------- UPDATE BATCH STUDENT (RATE LIMITED) ----------------
 @router.put(
     "/mappings/{mapping_id}",
     response_model=ApiResponse[SuccessMessageResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Update a student-batch mapping",
-    dependencies=[Depends(rate_limiter("students:batch:update", 5, 60))],
 )
 async def update_batch_student_by_id(
     mapping_id: PositiveInt,
     request_state: Request,
     request: UpdatedBatchStudentRequest,
     service: StudentService = Depends(StudentService),
-) -> ApiResponse[SuccessMessageResponse]:
-    logged_in_user_id = request_state.state.user.id
-    return ApiResponse(
-        data=service.update_batch_student_by_id(mapping_id, request, logged_in_user_id)
-    )
+):
+    user_id = request_state.state.user.id
+    data = await service.update_batch_student_by_id(mapping_id, request, user_id)
+    return ApiResponse(data=data)
 
 
 # ---------------- DELETE BATCH STUDENT (RATE LIMITED) ----------------
 @router.delete(
     "/mappings/{mapping_id}",
     response_model=ApiResponse[SuccessMessageResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Delete a student-batch mapping",
-    dependencies=[Depends(rate_limiter("students:batch:delete", 5, 60))],
 )
 async def delete_batch_student_by_id(
     mapping_id: PositiveInt,
     service: StudentService = Depends(StudentService),
-) -> ApiResponse[SuccessMessageResponse]:
-    return ApiResponse(data=service.delete_batch_student_by_id(mapping_id))
+):
+    data = await service.delete_batch_student_by_id(mapping_id)
+    return ApiResponse(data=data)

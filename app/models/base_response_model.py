@@ -18,5 +18,9 @@ class GetApiResponse(BaseModel, Generic[T]):
 
 
 class SuccessMessageResponse(BaseModel):
-    id: Optional[int] = None
+    message: str
+
+
+class CreateResponse(BaseModel):
+    id: int
     message: str

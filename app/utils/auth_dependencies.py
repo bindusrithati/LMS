@@ -4,6 +4,8 @@ from jose import jwt
 from fastapi import Request, HTTPException, status
 from app.models.user_models import CurrentContextUser
 from app.utils.constants import AUTHORIZATION
+from fastapi import WebSocket
+
 
 load_dotenv()
 
@@ -20,7 +22,8 @@ def __verify_jwt(token: str):
     if user_email:
         cur_user = CurrentContextUser()
         cur_user.id = payload.get("id")
-        cur_user.name = str(user_email)
+        cur_user.name = payload.get("name")
+        cur_user.email = str(user_email)
         cur_user.role = payload.get("role")
         return cur_user
 
@@ -35,3 +38,17 @@ async def verify_auth_token(request: Request):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token"
             )
+
+
+async def verify_auth_token_ws(websocket: WebSocket):
+    token = websocket.query_params.get("token")
+
+    if not token:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return None
+
+    try:
+        return __verify_jwt(token=token)
+    except Exception:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return None

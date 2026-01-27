@@ -10,7 +10,7 @@ from app.connectors.database_connector import get_db
 from app.entities.batch import Batch
 from app.entities.class_schedule import ClassSchedule
 from app.entities.syllabus import Syllabus
-from app.models.base_response_model import SuccessMessageResponse
+from app.models.base_response_model import CreateResponse, SuccessMessageResponse
 from app.models.batch_models import (
     BatchRequest,
     GetBatchResponse,
@@ -48,9 +48,9 @@ class BatchService:
     db: Session = Depends(get_db)
 
     # ---------------- CREATE BATCH ----------------
-    def create_batch(
+    async def create_batch(
         self, request: BatchRequest, logged_in_user_id: int
-    ) -> SuccessMessageResponse:
+    ) -> CreateResponse:
         existing_syllabus_ids = count_syllabus_by_ids(self.db, request.syllabus_ids)
         if existing_syllabus_ids != len(request.syllabus_ids):
             validate_data_not_found(False, ONE_OR_MORE_SYLLABUS_NOT_FOUND)
@@ -66,11 +66,15 @@ class BatchService:
 
         self.db.add(new_batch)
         self.db.commit()
+        self.db.refresh(new_batch)
 
-        #  cache invalidation
-        redis_client.delete("cache:batches:all")
+        print("BATCH OBJECT:", new_batch)
+        print("BATCH ID:", new_batch.id)
 
-        return SuccessMessageResponse(message=BATCH_CREATED_SUCCESSFULLY)
+        # cache invalidation
+        await redis_client.delete("cache:batches:all")
+
+        return CreateResponse(id=new_batch.id, message=BATCH_CREATED_SUCCESSFULLY)
 
     # ---------------- HELPER ----------------
     def get_batch_response(self, batch: Batch) -> GetBatchResponse:
@@ -95,39 +99,55 @@ class BatchService:
         )
 
     # ---------------- GET ALL BATCHES (CACHED) ----------------
-    def get_all_batches(self) -> list[GetBatchResponse]:
+    # ---------------- GET ALL BATCHES (CACHED) ----------------
+    async def get_all_batches(self) -> list[GetBatchResponse]:
         cache_key = "cache:batches:all"
-        cached = redis_client.get(cache_key)
 
+        # ✅ await Redis GET
+        cached = await redis_client.get(cache_key)
         if cached:
-            return [GetBatchResponse(**item) for item in json.loads(cached)]
+            data = json.loads(cached.decode("utf-8"))
+            return [GetBatchResponse(**item) for item in data]
 
+        # DB call (sync)
         batches = get_all_batches(self.db)
+
         response = [self.get_batch_response(batch) for batch in batches]
 
-        redis_client.setex(cache_key, 120, json.dumps([r.dict() for r in response]))
+        # ✅ await Redis SETEX
+        await redis_client.setex(
+            cache_key, 120, json.dumps([r.dict() for r in response], default=str)
+        )
+
         return response
 
     # ---------------- GET BATCH BY ID (CACHED) ----------------
-    def get_batch_by_id(self, batch_id: int) -> GetBatchResponse:
+    async def get_batch_by_id(self, batch_id: int) -> GetBatchResponse:
         cache_key = f"cache:batches:{batch_id}"
-        cached = redis_client.get(cache_key)
+
+        # ✅ await Redis GET
+        cached = await redis_client.get(cache_key)
 
         if cached:
-            return GetBatchResponse(**json.loads(cached))
+            return GetBatchResponse(**json.loads(cached.decode("utf-8")))
 
+        # DB call (sync)
         batch = get_batch(self.db, batch_id)
         validate_data_not_found(batch, BATCH_NOT_FOUND)
 
         response = self.get_batch_response(batch)
 
-        redis_client.setex(cache_key, 120, json.dumps(response.dict()))
+        # ✅ await Redis SETEX
+        await redis_client.setex(
+            cache_key, 120, json.dumps(response.dict(), default=str)
+        )
+
         return response
 
     # ---------------- UPDATE BATCH ----------------
     def update_batch_by_id(
         self, batch_id: int, request: BatchRequest, logged_in_user_id: int
-    ) -> SuccessMessageResponse:
+    ) -> CreateResponse:
         batch = get_batch(self.db, batch_id)
         validate_data_not_found(batch, BATCH_NOT_FOUND)
 
@@ -149,10 +169,10 @@ class BatchService:
         redis_client.delete("cache:batches:all")
         redis_client.delete(f"cache:batches:{batch_id}")
 
-        return SuccessMessageResponse(message=BATCH_UPDATED_SUCCESSFULLY)
+        return CreateResponse(id=batch.id, message=BATCH_UPDATED_SUCCESSFULLY)
 
     # ---------------- DELETE BATCH ----------------
-    def delete_batch_by_id(self, batch_id: int) -> SuccessMessageResponse:
+    def delete_batch_by_id(self, batch_id: int) -> CreateResponse:
         batch = get_batch(self.db, batch_id)
         validate_data_not_found(batch, BATCH_NOT_FOUND)
 
@@ -164,12 +184,12 @@ class BatchService:
         redis_client.delete(f"cache:batches:{batch_id}")
         redis_client.delete(f"cache:batch:schedule:{batch_id}")
 
-        return SuccessMessageResponse(message=BATCH_DELETED_SUCCESSFULLY)
+        return CreateResponse(id=batch.id, message=BATCH_DELETED_SUCCESSFULLY)
 
     # ---------------- CREATE CLASS SCHEDULE ----------------
     def create_schedule(
         self, batch_id: int, request: ClassScheduleRequest, user_id: int
-    ) -> SuccessMessageResponse:
+    ) -> CreateResponse:
         batch = get_batch(self.db, batch_id)
         validate_data_not_found(batch, BATCH_NOT_FOUND)
 
@@ -195,7 +215,9 @@ class BatchService:
         #  cache invalidation
         redis_client.delete(f"cache:batch:schedule:{batch_id}")
 
-        return SuccessMessageResponse(message=CLASS_SCHEDULE_CREATED_SUCCESSFULLY)
+        return CreateResponse(
+            id=schedule.id, message=CLASS_SCHEDULE_CREATED_SUCCESSFULLY
+        )
 
     # ---------------- HELPER ----------------
     def get_class_schedule_reponse(
@@ -216,27 +238,39 @@ class BatchService:
         )
 
     # ---------------- GET SCHEDULES BY BATCH (CACHED) ----------------
-    def get_schedules_by_batch(self, batch_id: int) -> List[GetClassScheduleResponse]:
-        cache_key = f"cache:batch:schedule:{batch_id}"
-        cached = redis_client.get(cache_key)
+    async def get_schedules_by_batch(
+        self, batch_id: int
+    ) -> list[GetClassScheduleResponse]:
 
+        cache_key = f"cache:class_schedules:{batch_id}"
+
+        # ✅ await Redis GET
+        cached = await redis_client.get(cache_key)
         if cached:
-            return [GetClassScheduleResponse(**item) for item in json.loads(cached)]
+            data = json.loads(cached.decode("utf-8"))
+            return [GetClassScheduleResponse(**item) for item in data]
 
+        # DB call (sync)
         schedules = get_batch_class_schedules(self.db, batch_id)
-        response = [self.get_class_schedule_reponse(s) for s in schedules]
 
-        redis_client.setex(cache_key, 60, json.dumps([r.dict() for r in response]))
+        response = [self.get_class_schedule_reponse(schedule) for schedule in schedules]
+
+        # ✅ await Redis SETEX
+        await redis_client.setex(
+            cache_key, 120, json.dumps([r.dict() for r in response], default=str)
+        )
+
         return response
 
     # ---------------- UPDATE SCHEDULE ----------------
-    def update_schedule_by_id(
+    async def update_schedule_by_id(
         self,
         schedule_id: int,
         batch_id: int,
         request: UpdateClassScheduleRequest,
         user_id: int,
     ) -> SuccessMessageResponse:
+
         batch = get_batch(self.db, batch_id)
         validate_data_not_found(batch, BATCH_NOT_FOUND)
 
@@ -250,8 +284,8 @@ class BatchService:
 
         self.db.commit()
 
-        #  cache invalidation
-        redis_client.delete(f"cache:batch:schedule:{batch_id}")
+        # ✅ await async redis
+        await redis_client.delete(f"cache:batch:schedule:{batch_id}")
 
         return SuccessMessageResponse(message=CLASS_SCHEDULE_UPDATED_SUCCESSFULLY)
 

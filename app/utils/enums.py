@@ -11,6 +11,7 @@ class Roles(IntEnum):
     SuperAdmin = 99
     Admin = 2
     Student = 1
+    Mentor = 3
 
 
 class OrderByTypes(str, Enum):

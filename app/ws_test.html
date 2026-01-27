@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mentor Student Chat</title>
+</head>
+<body>
+
+<h3>Batch Chat</h3>
+<p><b>Status:</b> <span id="status">Connecting...</span></p>
+
+<input id="msg" placeholder="Type message" />
+<button onclick="send()">Send</button>
+
+<ul id="chat"></ul>
+
+<script>
+  let myUserId = null;
+  let myRole = null;
+
+  // 🔴 PASTE JWT TOKEN HERE
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NiwibmFtZSI6InN0cmluZyIsImVtYWlsIjoiYmluZHUxQGdtYWlsLmNvbSIsInJvbGUiOiJNZW50b3IiLCJwaG9uZV9udW1iZXIiOiJzdHJpdGd5bmciLCJleHAiOjE3Njk1MzIyMDh9.YUNdsngxUK8yZ5DcMuZisV04sbZxAxD2ke2jTyyz4N4";
+
+  // 🔴 VALID BATCH ID
+  const batchId = 12;
+
+  const ws = new WebSocket(
+    `ws://127.0.0.1:8000/ws/chat/batch/${batchId}?token=${token}`
+  );
+
+  ws.onopen = () => {
+    document.getElementById("status").innerText = "Connected ✅";
+  };
+
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    // INIT MESSAGE (sent once)
+    if (data.type === "init") {
+      myUserId = data.user_id;
+      myRole = data.role;
+      return;
+    }
+
+    const li = document.createElement("li");
+
+    if (data.from_user_id === myUserId) {
+      li.innerText = `You (${myRole}): ${data.message}`;
+    } else {
+      li.innerText = `${data.from_role}: ${data.message}`;
+    }
+
+    document.getElementById("chat").appendChild(li);
+  };
+
+  ws.onclose = () => {
+    document.getElementById("status").innerText = "Disconnected ❌";
+  };
+
+  function send() {
+    const input = document.getElementById("msg");
+    ws.send(JSON.stringify({ message: input.value }));
+    input.value = "";
+  }
+</script>
+
+</body>
+</html>

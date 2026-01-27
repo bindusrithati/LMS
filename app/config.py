@@ -2,6 +2,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
@@ -19,6 +20,9 @@ class Settings(BaseSettings):
     REDIS_PORT: int
 
     FRONTEND_RESET_URL: str
+
+    JWT_SECRET: str
+    JWT_ALGORITHM: str = "HS256"
 
 
 settings = Settings()

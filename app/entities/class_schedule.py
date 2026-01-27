@@ -10,7 +10,7 @@ class ClassSchedule(Base):
 
     id: int = sa.Column(sa.Integer, primary_key=True, nullable=False)  # type: ignore
     batch_id: int = sa.Column(sa.Integer, sa.ForeignKey("batches.id"), nullable=False)  # type: ignore
-    day: str = sa.Column(sa.String(10), nullable=False)  # type: ignore
+    day: int = sa.Column(sa.Integer, nullable=False)  # type: ignore
     start_time: time = sa.Column(sa.Time, nullable=False)  # type: ignore
     end_time: time = sa.Column(sa.Time, nullable=False)  # type: ignore
     created_at: datetime = sa.Column(sa.DateTime, nullable=False, default=sa.func.now())  # type: ignore

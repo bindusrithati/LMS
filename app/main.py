@@ -5,13 +5,10 @@ from app.utils.life_cycle_handler import setup_event_handlers
 from app.utils.middlewares import setup_middlewares
 from app.connectors.database_connector import Base, engine
 
+from app.routes.router import router as chat_router
 
 app = FastAPI()
-
-
-@app.on_event("startup")
-def create_tables():
-    Base.metadata.create_all(bind=engine)
+app.include_router(chat_router)
 
 
 setup_routes(app)

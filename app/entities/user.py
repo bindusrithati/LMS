@@ -7,6 +7,7 @@ from app.connectors.database_connector import Base
 from app.utils.enums import GenderTypes, Roles
 from app.utils.hasher import Hasher
 from app.utils.validation import validate_password
+from sqlalchemy.orm import relationship
 
 
 class User(Base):
@@ -23,9 +24,15 @@ class User(Base):
     __role: int = sa.Column(name="role", type_=sa.Integer, nullable=False)
     created_at: datetime = sa.Column(sa.DateTime, nullable=False, default=sa.func.now())
     created_by: int = sa.Column(sa.Integer, sa.ForeignKey("users.id"), nullable=True)
-    updated_at: datetime = sa.Column(sa.DateTime, nullable=False, default=sa.func.now())
+    updated_at: datetime = sa.Column(
+        sa.DateTime,
+        default=sa.func.now(),
+        onupdate=sa.func.now(),
+        nullable=False,
+    )
     updated_by: int = sa.Column(sa.Integer, sa.ForeignKey("users.id"), nullable=True)
     is_active: bool = sa.Column(sa.Boolean, nullable=False, default=True)
+    mentor_profile = relationship("MentorProfile", back_populates="user", uselist=False)
 
     @property
     def gender(self):

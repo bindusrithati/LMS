@@ -19,7 +19,7 @@ class GetBatchResponse(BaseModel):
     syllabus: List[dict] = None
     start_date: date
     end_date: date
-    mentor: str
+    mentor: Optional[int]
     created_at: datetime
     created_by: str
     updated_at: datetime
@@ -35,7 +35,7 @@ class ClassScheduleRequest(BaseModel):
 
 class GetClassScheduleResponse(BaseModel):
     id: int
-    day: str
+    day: int
     start_time: time
     end_time: time
     created_at: datetime

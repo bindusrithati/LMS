@@ -13,6 +13,7 @@ from app.utils.constants import (
     SYLLABUS_DELETED_SUCCESSFULLY,
     SYLLABUS_NAME_ALREADY_EXISTS,
     SYLLABUS_NOT_FOUND,
+    SYLLABUS_UPDATED_SUCCESSFULLY,
 )
 from app.utils.db_queries import get_all_syllabus, get_syllabus, get_syllabus_by_name
 from app.utils.helpers import get_all_users_dict
@@ -44,7 +45,9 @@ class SyllabusService:
         # 🔥 cache invalidation
         redis_client.delete("cache:syllabus:all")
 
-        return SuccessMessageResponse(message=SYLLABUS_CREATED_SUCCESSFULLY)
+        return SuccessMessageResponse(
+            id=syllabus.id, message=SYLLABUS_CREATED_SUCCESSFULLY
+        )
 
     # ---------------- HELPER ----------------
     def get_syllabus_response(
@@ -64,33 +67,40 @@ class SyllabusService:
         )
 
     # ---------------- GET ALL SYLLABUS (CACHED) ----------------
-    def get_all_syllabus(self) -> list[GetSyllabusResponse]:
+    async def get_all_syllabus(self) -> list[GetSyllabusResponse]:
         cache_key = "cache:syllabus:all"
-        cached = redis_client.get(cache_key)
+        cached = await redis_client.get(cache_key)
 
         if cached:
-            return [GetSyllabusResponse(**item) for item in json.loads(cached)]
+            return [
+                GetSyllabusResponse(**item)
+                for item in json.loads(cached.decode("utf-8"))
+            ]
 
         syllabus_list = get_all_syllabus(self.db)
         response = [self.get_syllabus_response(syllabus) for syllabus in syllabus_list]
 
-        redis_client.setex(cache_key, 120, json.dumps([r.dict() for r in response]))
+        redis_client.setex(
+            cache_key, 120, json.dumps([r.dict() for r in response], default=str)
+        )
         return response
 
     # ---------------- GET SYLLABUS BY ID (CACHED) ----------------
-    def get_syllabus_by_id(self, syllabus_id: int) -> GetSyllabusResponse:
+    async def get_syllabus_by_id(self, syllabus_id: int) -> GetSyllabusResponse:
         cache_key = f"cache:syllabus:{syllabus_id}"
-        cached = redis_client.get(cache_key)
+
+        cached = await redis_client.get(cache_key)
 
         if cached:
-            return GetSyllabusResponse(**json.loads(cached))
+            return GetSyllabusResponse(**json.loads(cached.decode("utf-8")))
 
         syllabus = get_syllabus(self.db, syllabus_id)
         validate_data_not_found(syllabus, SYLLABUS_NOT_FOUND)
 
         response = self.get_syllabus_response(syllabus)
 
-        redis_client.setex(cache_key, 120, json.dumps(response.dict()))
+        redis_client.setex(cache_key, 120, json.dumps(response.dict(), default=str))
+
         return response
 
     # ---------------- VALIDATION ----------------
@@ -120,7 +130,7 @@ class SyllabusService:
         redis_client.delete("cache:syllabus:all")
         redis_client.delete(f"cache:syllabus:{syllabus_id}")
 
-        return SuccessMessageResponse(message=SYLLABUS_CREATED_SUCCESSFULLY)
+        return SuccessMessageResponse(message=SYLLABUS_UPDATED_SUCCESSFULLY)
 
     # ---------------- DELETE ----------------
     def delete_syllabus_by_id(self, syllabus_id: int) -> SuccessMessageResponse:

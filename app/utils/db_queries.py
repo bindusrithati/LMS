@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.entities.batch import Batch
 from app.entities.class_schedule import ClassSchedule
+from app.entities.mentor import MentorProfile
 from app.entities.student import Student
 from app.entities.batch_student import BatchStudent
 from app.entities.syllabus import Syllabus
@@ -29,6 +30,11 @@ def get_user_by_email(db: Session, email: str):
 
 def get_user_by_phone_number(db: Session, phone_number: str):
     return db.query(User).filter(User.phone_number == phone_number).first()
+
+
+# ----------------------- Mentor QUERIES ----------------------:
+def get_mentor_profile_by_user_id(db, user_id: int):
+    return db.query(MentorProfile).filter(MentorProfile.user_id == user_id).first()
 
 
 # ---------------------- SYLLABUS QUERIES ----------------------:

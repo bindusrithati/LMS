@@ -37,7 +37,7 @@ async def create_syllabus(
 async def get_all_syllabus(
     service: SyllabusService = Depends(SyllabusService),
 ) -> ApiResponse[List[GetSyllabusResponse]]:
-    return ApiResponse(data=service.get_all_syllabus())
+    return ApiResponse(data=await service.get_all_syllabus())
 
 
 # ---------------- GET SYLLABUS BY ID (NO RATE LIMIT – CACHED) ----------------
@@ -51,7 +51,7 @@ async def get_syllabus_by_id(
     syllabus_id: PositiveInt,
     service: SyllabusService = Depends(SyllabusService),
 ) -> ApiResponse[GetSyllabusResponse]:
-    return ApiResponse(data=service.get_syllabus_by_id(syllabus_id))
+    return ApiResponse(data=await service.get_syllabus_by_id(syllabus_id))
 
 
 # ---------------- UPDATE SYLLABUS (RATE LIMITED) ----------------
@@ -68,7 +68,7 @@ async def update_syllabus_by_id(
     request: SyllabusRequest,
     service: SyllabusService = Depends(SyllabusService),
 ) -> ApiResponse[SuccessMessageResponse]:
-    logged_in_user_id = request_state.state.user.user_id
+    logged_in_user_id = request_state.state.user.id
     return ApiResponse(
         data=service.update_syllabus_by_id(syllabus_id, request, logged_in_user_id)
     )

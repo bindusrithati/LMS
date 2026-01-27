@@ -81,6 +81,7 @@ class UserService:
 
         self.db.add(user)
         self.db.commit()
+        self.db.refresh(user)
 
         return UserCreationResponse(id=user.id, message=USER_CREATED_SUCCESSFULLY)
 

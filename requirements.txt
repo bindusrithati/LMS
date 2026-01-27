@@ -129,6 +129,8 @@ python-dotenv==1.0.0
     #   pydantic-settings
 python-jose[cryptography]==3.3.0
     # via -r requirements.in
+redis==7.1.0
+    # via -r requirements.in
 requests==2.31.0
     # via -r requirements.in
 rsa==4.9

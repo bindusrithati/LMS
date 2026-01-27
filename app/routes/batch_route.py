@@ -1,8 +1,13 @@
 from typing import List
+from unittest import result
 from fastapi import APIRouter, Depends, Request, status
 from pydantic import PositiveInt
 
-from app.models.base_response_model import ApiResponse, SuccessMessageResponse
+from app.models.base_response_model import (
+    ApiResponse,
+    CreateResponse,
+    SuccessMessageResponse,
+)
 from app.models.batch_models import (
     BatchRequest,
     ClassScheduleRequest,
@@ -19,7 +24,7 @@ router = APIRouter(prefix="/batches", tags=["BATCH MANAGEMENT SERVICE"])
 # ---------------- CREATE BATCH (RATE LIMITED) ----------------
 @router.post(
     "",
-    response_model=ApiResponse[SuccessMessageResponse],
+    response_model=ApiResponse[CreateResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Create a new batch",
     dependencies=[Depends(rate_limiter("batch:create", 5, 60))],
@@ -28,9 +33,10 @@ async def create_batch(
     request_state: Request,
     request: BatchRequest,
     service: BatchService = Depends(BatchService),
-) -> ApiResponse[SuccessMessageResponse]:
-    logged_in_user_id = request_state.state.user_id
-    return ApiResponse(data=service.create_batch(request, logged_in_user_id))
+) -> ApiResponse[CreateResponse]:
+    logged_in_user_id = request_state.state.user.id
+    result = await service.create_batch(request, logged_in_user_id)
+    return ApiResponse(data=result)
 
 
 # ---------------- GET ALL BATCHES (NO RATE LIMIT – CACHED) ----------------
@@ -42,8 +48,9 @@ async def create_batch(
 )
 async def get_all_batches(
     service: BatchService = Depends(BatchService),
-) -> ApiResponse[List[GetBatchResponse]]:
-    return ApiResponse(data=service.get_all_batches())
+):
+    data = await service.get_all_batches()  # 🔥 MUST await
+    return ApiResponse(data=data)
 
 
 # ---------------- GET BATCH BY ID (NO RATE LIMIT – CACHED) ----------------
@@ -57,13 +64,13 @@ async def get_batch_by_id(
     batch_id: PositiveInt,
     service: BatchService = Depends(BatchService),
 ) -> ApiResponse[GetBatchResponse]:
-    return ApiResponse(data=service.get_batch_by_id(batch_id))
+    return ApiResponse(data=await service.get_batch_by_id(batch_id))
 
 
 # ---------------- UPDATE BATCH (RATE LIMITED) ----------------
 @router.put(
     "/{batch_id}",
-    response_model=ApiResponse[SuccessMessageResponse],
+    response_model=ApiResponse[CreateResponse],
     status_code=status.HTTP_200_OK,
     summary="Update batch by id",
     dependencies=[Depends(rate_limiter("batch:update", 5, 60))],
@@ -73,17 +80,17 @@ async def update_batch_by_id(
     batch_id: PositiveInt,
     request: BatchRequest,
     service: BatchService = Depends(BatchService),
-) -> ApiResponse[SuccessMessageResponse]:
+) -> ApiResponse[CreateResponse]:
     logged_in_user_id = request_state.state.user.id
-    return ApiResponse(
-        data=service.update_batch_by_id(batch_id, request, logged_in_user_id)
-    )
+
+    result = await service.update_batch_by_id(batch_id, request, logged_in_user_id)
+    return ApiResponse(data=result)
 
 
 # ---------------- DELETE BATCH (RATE LIMITED) ----------------
 @router.delete(
     "/{batch_id}",
-    response_model=ApiResponse[SuccessMessageResponse],
+    response_model=ApiResponse[CreateResponse],
     status_code=status.HTTP_200_OK,
     summary="Delete batch by id",
     dependencies=[Depends(rate_limiter("batch:delete", 5, 60))],
@@ -91,14 +98,14 @@ async def update_batch_by_id(
 async def delete_batch_by_id(
     batch_id: PositiveInt,
     service: BatchService = Depends(BatchService),
-) -> ApiResponse[SuccessMessageResponse]:
+) -> ApiResponse[CreateResponse]:
     return ApiResponse(data=service.delete_batch_by_id(batch_id))
 
 
 # ---------------- CREATE CLASS SCHEDULE (RATE LIMITED) ----------------
 @router.post(
     "/{batch_id}/schedule-class",
-    response_model=ApiResponse[SuccessMessageResponse],
+    response_model=ApiResponse[CreateResponse],
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(rate_limiter("batch:schedule:create", 5, 60))],
 )
@@ -107,7 +114,7 @@ async def create_class_schedule(
     request: ClassScheduleRequest,
     request_state: Request,
     service: BatchService = Depends(BatchService),
-) -> ApiResponse[SuccessMessageResponse]:
+) -> ApiResponse[CreateResponse]:
     user_id = request_state.state.user.id
     return ApiResponse(data=service.create_schedule(batch_id, request, user_id))
 
@@ -122,7 +129,7 @@ async def get_class_schedules_by_batch(
     batch_id: PositiveInt,
     service: BatchService = Depends(BatchService),
 ) -> ApiResponse[List[GetClassScheduleResponse]]:
-    return ApiResponse(data=service.get_schedules_by_batch(batch_id))
+    return ApiResponse(data=await service.get_schedules_by_batch(batch_id))
 
 
 # ---------------- UPDATE CLASS SCHEDULE (RATE LIMITED) ----------------
@@ -139,10 +146,14 @@ async def update_class_schedule_by_id(
     request_state: Request,
     service: BatchService = Depends(BatchService),
 ) -> ApiResponse[SuccessMessageResponse]:
+
     user_id = request_state.state.user.id
-    return ApiResponse(
-        data=service.update_schedule_by_id(schedule_id, batch_id, request, user_id)
+
+    result = await service.update_schedule_by_id(
+        schedule_id, batch_id, request, user_id
     )
+
+    return ApiResponse(data=result)
 
 
 # ---------------- DELETE CLASS SCHEDULE (RATE LIMITED) ----------------

@@ -5,3 +5,5 @@ from .batch import Batch
 from .student import Student
 from .batch_student import BatchStudent
 from .class_schedule import ClassSchedule
+from .mentor import MentorProfile
+from .guest import Guest

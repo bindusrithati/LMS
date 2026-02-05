@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     REDIS_PORT: int
 
     FRONTEND_RESET_URL: str
+    FRONTEND_MENTOR_URL: str
+    FRONTEND_GUEST_URL: str
 
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"

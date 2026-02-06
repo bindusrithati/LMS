@@ -60,13 +60,26 @@ class MentorService:
 
     # ---------------- GET BY USER ID ----------------
     def get_mentor_profile_by_user_id(self, user_id: int) -> GetMentorProfileResponse:
-
         mentor_profile = (
             self.db.query(MentorProfile)
             .filter(MentorProfile.user_id == user_id)
             .first()
         )
-        validate_data_not_found(mentor_profile, MENTOR_PROFILE_NOT_FOUND)
+        
+        mentor_user = self.db.query(User).filter(User.id == user_id).first()
+        validate_data_not_found(mentor_user, "User not found")
+
+        if not mentor_profile:
+            return GetMentorProfileResponse(
+                id=0,
+                name=mentor_user.name,
+                email=mentor_user.email,
+                expertise="",
+                experience_years=0,
+                bio="",
+                is_available=True,
+                created_at=mentor_user.created_at,
+            )
 
         users_dict: Dict[int, str] = get_all_users_dict(self.db)
         mentor_user = self.db.query(User).filter(User.id == user_id).first()

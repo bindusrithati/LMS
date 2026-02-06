@@ -5,6 +5,8 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.services.authorization import verify_ws_token
 from app.services.manager import manager
+from app.connectors.database_connector import get_database
+from app.entities.chat import ChatMessage
 
 
 router = APIRouter(tags=["BATCH CHAT"])
@@ -37,6 +39,19 @@ async def batch_chat(websocket: WebSocket, batch_id: int):
             message_text = data.get("message")
             if not message_text:
                 continue
+            
+            # Save message to database
+            db = get_database()
+            new_message = ChatMessage(
+                batch_id=batch_id,
+                user_id=user["user_id"],
+                message=message_text,
+                timestamp=datetime.now()
+            )
+            db.add(new_message)
+            db.commit()
+            db.refresh(new_message)
+            db.close()
 
             await manager.broadcast(
                 batch_id,

@@ -54,3 +54,13 @@ class UpdateClassScheduleRequest(BaseModel):
     start_time: time
     end_time: time
     topic: Optional[str] = None
+
+
+class GetChatMessageResponse(BaseModel):
+    id: int
+    batch_id: int
+    user_id: int
+    user_name: str
+    user_role: str
+    message: str
+    timestamp: datetime

@@ -14,6 +14,7 @@ from app.models.batch_models import (
     GetBatchResponse,
     GetClassScheduleResponse,
     UpdateClassScheduleRequest,
+    GetChatMessageResponse,
 )
 from app.services.batch_service import BatchService
 from app.utils.rate_limiter import rate_limiter
@@ -169,3 +170,18 @@ async def delete_class_schedule_by_id(
     service: BatchService = Depends(BatchService),
 ) -> ApiResponse[SuccessMessageResponse]:
     return ApiResponse(data=service.delete_schedule_by_id(schedule_id, batch_id))
+    return ApiResponse(data=service.delete_schedule_by_id(schedule_id, batch_id))
+
+
+# ---------------- GET CHAT HISTORY ----------------
+@router.get(
+    "/{batch_id}/chats",
+    response_model=ApiResponse[List[GetChatMessageResponse]],
+    status_code=status.HTTP_200_OK,
+    summary="Retrieve chat history for a batch",
+)
+async def get_batch_chat_history(
+    batch_id: PositiveInt,
+    service: BatchService = Depends(BatchService),
+) -> ApiResponse[List[GetChatMessageResponse]]:
+    return ApiResponse(data=service.get_chat_history(batch_id))

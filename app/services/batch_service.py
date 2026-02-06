@@ -11,13 +11,17 @@ from app.entities.batch import Batch
 from app.entities.class_schedule import ClassSchedule
 from app.entities.batch_student import BatchStudent
 from app.entities.syllabus import Syllabus
+from app.entities.chat import ChatMessage
+from app.entities.user import User
 from app.models.base_response_model import CreateResponse, SuccessMessageResponse
 from app.models.batch_models import (
     BatchRequest,
     GetBatchResponse,
     GetClassScheduleResponse,
     UpdateClassScheduleRequest,
+    UpdateClassScheduleRequest,
     ClassScheduleRequest,
+    GetChatMessageResponse,
 )
 from app.utils.constants import (
     BATCH_CREATED_SUCCESSFULLY,
@@ -319,3 +323,30 @@ class BatchService:
         redis_client.delete(f"cache:batch:schedule:{batch_id}")
 
         return SuccessMessageResponse(message=CLASS_SCHEDULE_DELETED_SUCCESSFULLY)
+
+    # ---------------- GET CHAT HISTORY ----------------
+    def get_chat_history(self, batch_id: int) -> list[GetChatMessageResponse]:
+        results = (
+            self.db.query(ChatMessage, User)
+            .join(User, ChatMessage.user_id == User.id)
+            .filter(ChatMessage.batch_id == batch_id)
+            .order_by(ChatMessage.timestamp)
+            .all()
+        )
+
+        response = []
+        for msg, user in results:
+            response.append(
+                GetChatMessageResponse(
+                    id=msg.id,
+                    batch_id=msg.batch_id,
+                    user_id=msg.user_id,
+                    user_name=user.name,
+                    user_role=user.role,
+                    message=msg.message,
+                    timestamp=msg.timestamp,
+                )
+            )
+
+        return response
+

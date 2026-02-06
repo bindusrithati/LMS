@@ -1,4 +1,6 @@
 # app/ws_chat.py
+from datetime import datetime
+import uuid
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.services.authorization import verify_ws_token
@@ -23,8 +25,8 @@ async def batch_chat(websocket: WebSocket, batch_id: int):
         {
             "type": "init",
             "user_id": user["user_id"],
-            "name": user["name"],
-            "role": user["role"],
+            "user_name": user["name"],
+            "user_role": user["role"],
         }
     )
 
@@ -32,18 +34,21 @@ async def batch_chat(websocket: WebSocket, batch_id: int):
         while True:
             data = await websocket.receive_json()
 
-            message = data.get("message")
-            if not message:
+            message_text = data.get("message")
+            if not message_text:
                 continue
 
             await manager.broadcast(
                 batch_id,
                 {
                     "type": "message",
+                    "id": str(uuid.uuid4()),
+                    "batch_id": batch_id,
                     "user_id": user["user_id"],
-                    "name": user["name"],
-                    "role": user["role"],
-                    "message": message,
+                    "user_name": user["name"],
+                    "user_role": user["role"],
+                    "message": message_text,
+                    "timestamp": datetime.now().isoformat(),
                 },
             )
 
@@ -55,5 +60,7 @@ async def batch_chat(websocket: WebSocket, batch_id: int):
             {
                 "type": "leave",
                 "user_id": user["user_id"],
+                "user_name": user["name"],
+                "timestamp": datetime.now().isoformat(),
             },
         )

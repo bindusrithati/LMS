@@ -13,6 +13,7 @@ class ClassSchedule(Base):
     day: int = sa.Column(sa.Integer, nullable=False)  # type: ignore
     start_time: time = sa.Column(sa.Time, nullable=False)  # type: ignore
     end_time: time = sa.Column(sa.Time, nullable=False)  # type: ignore
+    topic: str = sa.Column(sa.String(100), nullable=True)  # type: ignore
     created_at: datetime = sa.Column(sa.DateTime, nullable=False, default=sa.func.now())  # type: ignore
     created_by: int = sa.Column(sa.Integer, sa.ForeignKey("users.id"), nullable=False)  # type: ignore
     updated_at: datetime = sa.Column(sa.DateTime, nullable=False, default=sa.func.now())  # type: ignore

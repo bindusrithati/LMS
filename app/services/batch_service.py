@@ -208,6 +208,7 @@ class BatchService:
             day=request.day,
             start_time=request.start_time,
             end_time=request.end_time,
+            topic=request.topic,
             created_by=user_id,
             updated_by=user_id,
         )
@@ -233,6 +234,7 @@ class BatchService:
             day=class_schedule.day,
             start_time=class_schedule.start_time,
             end_time=class_schedule.end_time,
+            topic=class_schedule.topic,
             created_at=class_schedule.created_at,
             created_by=user_dict.get(class_schedule.created_by),
             updated_at=class_schedule.updated_at,
@@ -283,6 +285,7 @@ class BatchService:
         schedule.day = request.day
         schedule.start_time = request.start_time
         schedule.end_time = request.end_time
+        schedule.topic = request.topic
         schedule.updated_by = user_id
 
         self.db.commit()

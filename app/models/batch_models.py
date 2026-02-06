@@ -33,6 +33,7 @@ class ClassScheduleRequest(BaseModel):
     day: Days
     start_time: time
     end_time: time
+    topic: Optional[str] = None
 
 
 class GetClassScheduleResponse(BaseModel):
@@ -40,6 +41,7 @@ class GetClassScheduleResponse(BaseModel):
     day: int
     start_time: time
     end_time: time
+    topic: Optional[str] = None
     created_at: datetime
     created_by: str
     updated_at: datetime
@@ -51,3 +53,4 @@ class UpdateClassScheduleRequest(BaseModel):
     day: Days
     start_time: time
     end_time: time
+    topic: Optional[str] = None

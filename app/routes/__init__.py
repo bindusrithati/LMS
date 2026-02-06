@@ -12,11 +12,11 @@ security = HTTPBearer()
 
 def setup_routes(app: FastAPI):
     for route in PUBLIC_ROUTES:
-        app.include_router(route, prefix="/api")
+        app.include_router(route)
 
     for route in PROTECTED_ROUTES:
         dependcies = [Depends(security), Depends(verify_auth_token)]
-        app.include_router(route, prefix="/api", dependencies=dependcies)
+        app.include_router(route, dependencies=dependcies)
 
     # adding proxy routing tonotification V1.
     app.add_route(

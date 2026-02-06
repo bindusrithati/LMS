@@ -106,7 +106,7 @@ class BatchService:
         # ✅ await Redis GET
         cached = await redis_client.get(cache_key)
         if cached:
-            data = json.loads(cached.decode("utf-8"))
+            data = json.loads(cached)
             return [GetBatchResponse(**item) for item in data]
 
         # DB call (sync)
@@ -129,7 +129,7 @@ class BatchService:
         cached = await redis_client.get(cache_key)
 
         if cached:
-            return GetBatchResponse(**json.loads(cached.decode("utf-8")))
+            return GetBatchResponse(**json.loads(cached))
 
         # DB call (sync)
         batch = get_batch(self.db, batch_id)
@@ -247,7 +247,7 @@ class BatchService:
         # ✅ await Redis GET
         cached = await redis_client.get(cache_key)
         if cached:
-            data = json.loads(cached.decode("utf-8"))
+            data = json.loads(cached)
             return [GetClassScheduleResponse(**item) for item in data]
 
         # DB call (sync)

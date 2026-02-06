@@ -16,9 +16,10 @@
 <script>
   let myUserId = null;
   let myRole = null;
+  let myName = null;
 
-  // 🔴 PASTE JWT TOKEN HERE
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NywibmFtZSI6InN0dWRlbnR1dXUiLCJlbWFpbCI6ImlhbXN0dWRlbnQxQGV4YW1wbGUuY29tIiwicm9sZSI6IlN0dWRlbnQiLCJwaG9uZV9udW1iZXIiOiJzdHJzZGZnaGpraW5nIiwiZXhwIjoxNzY5NTMyMTIyfQ.6CeJcyJhZt46jRbbQKT4PDOIlcn4rjA2Q5rYg6RLtQA";
+  // 🔴 STUDENT JWT TOKEN
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NywibmFtZSI6InN0dWRlbnR1dXUiLCJlbWFpbCI6ImlhbXN0dWRlbnQxQGV4YW1wbGUuY29tIiwicm9sZSI6IlN0dWRlbnQiLCJwaG9uZV9udW1iZXIiOiJzdHJzZGZnaGpraW5nIiwiZXhwIjoxNzcwMzY5NDE2fQ.IdAWCpAKYZppb50r4R7bKq3kLUQXYa1iW3xGnr7rG80";
 
   // 🔴 VALID BATCH ID
   const batchId = 12;
@@ -34,22 +35,33 @@
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
 
-    // INIT MESSAGE (sent once)
+    // INIT
     if (data.type === "init") {
       myUserId = data.user_id;
       myRole = data.role;
+      myName = data.name;
       return;
     }
 
-    const li = document.createElement("li");
+    // MESSAGE
+    if (data.type === "message") {
+      const li = document.createElement("li");
 
-    if (data.from_user_id === myUserId) {
-      li.innerText = `You (${myRole}): ${data.message}`;
-    } else {
-      li.innerText = `${data.from_role}: ${data.message}`;
+      if (data.user_id === myUserId) {
+        li.innerText = `You (${myRole}): ${data.message}`;
+      } else {
+        li.innerText = `${data.name} (${data.role}): ${data.message}`;
+      }
+
+      document.getElementById("chat").appendChild(li);
     }
 
-    document.getElementById("chat").appendChild(li);
+    // USER LEFT (optional)
+    if (data.type === "leave") {
+      const li = document.createElement("li");
+      li.innerText = `User ${data.user_id} left the chat`;
+      document.getElementById("chat").appendChild(li);
+    }
   };
 
   ws.onclose = () => {
@@ -58,6 +70,8 @@
 
   function send() {
     const input = document.getElementById("msg");
+    if (!input.value.trim()) return;
+
     ws.send(JSON.stringify({ message: input.value }));
     input.value = "";
   }

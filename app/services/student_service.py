@@ -36,6 +36,7 @@ from app.utils.db_queries import (
     get_student_by_id,
     get_student_in_batch,
     get_students,
+    get_user_by_id,
 )
 from app.utils.helpers import get_all_users_dict
 from app.utils.validation import validate_data_exits, validate_data_not_found
@@ -100,7 +101,7 @@ class StudentService:
         cached = await redis_client.get(cache_key)  # ✅ await
 
         if cached:
-            data = json.loads(cached.decode("utf-8"))  # ✅ decode
+            data = json.loads(cached)
             return [GetStudentResponse(**item) for item in data]
 
         students = get_students(self.db)
@@ -120,7 +121,7 @@ class StudentService:
         cached = await redis_client.get(cache_key)
 
         if cached:
-            return GetStudentResponse(**json.loads(cached.decode("utf-8")))
+            return GetStudentResponse(**json.loads(cached))
 
         student = get_student(self.db, student_id)
         validate_data_not_found(student, STUDENT_NOT_FOUND)
@@ -236,7 +237,7 @@ class StudentService:
         if cached:
             return [
                 GetMappedBatchStudentResponse(**item)
-                for item in json.loads(cached.decode("utf-8"))
+                for item in json.loads(cached)
             ]
 
         StudentUser = aliased(User)
@@ -269,15 +270,18 @@ class StudentService:
         cached = await redis_client.get(cache_key)
 
         if cached:
-            return GetMappedBatchStudentResponse(**json.loads(cached.decode("utf-8")))
+            return GetMappedBatchStudentResponse(**json.loads(cached))
 
         student_batch = get_mapped_batch_student(self.db, mapping_id)
         validate_data_not_found(student_batch, MAPPING_NOT_FOUND)
 
         student = get_student(self.db, student_batch.student_id)
+        student_user = get_user_by_id(self.db, student.user_id)
         users_dict = get_all_users_dict(self.db)
 
-        response = self.get_batch_student_response(student, student_batch, users_dict)
+        response = self.get_batch_student_response(
+            student_user, student_batch, users_dict
+        )
 
         await redis_client.setex(
             cache_key, 60, json.dumps(response.dict(), default=str)

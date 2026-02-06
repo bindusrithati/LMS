@@ -74,7 +74,7 @@ class SyllabusService:
         if cached:
             return [
                 GetSyllabusResponse(**item)
-                for item in json.loads(cached.decode("utf-8"))
+                for item in json.loads(cached)
             ]
 
         syllabus_list = get_all_syllabus(self.db)
@@ -92,7 +92,7 @@ class SyllabusService:
         cached = await redis_client.get(cache_key)
 
         if cached:
-            return GetSyllabusResponse(**json.loads(cached.decode("utf-8")))
+            return GetSyllabusResponse(**json.loads(cached))
 
         syllabus = get_syllabus(self.db, syllabus_id)
         validate_data_not_found(syllabus, SYLLABUS_NOT_FOUND)

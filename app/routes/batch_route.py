@@ -83,7 +83,7 @@ async def update_batch_by_id(
 ) -> ApiResponse[CreateResponse]:
     logged_in_user_id = request_state.state.user.id
 
-    result = await service.update_batch_by_id(batch_id, request, logged_in_user_id)
+    result = service.update_batch_by_id(batch_id, request, logged_in_user_id)
     return ApiResponse(data=result)
 
 

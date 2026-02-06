@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.connectors.database_connector import get_db
 from app.entities.batch import Batch
 from app.entities.class_schedule import ClassSchedule
+from app.entities.batch_student import BatchStudent
 from app.entities.syllabus import Syllabus
 from app.models.base_response_model import CreateResponse, SuccessMessageResponse
 from app.models.batch_models import (
@@ -178,7 +179,13 @@ class BatchService:
     def delete_batch_by_id(self, batch_id: int) -> CreateResponse:
         batch = get_batch(self.db, batch_id)
         validate_data_not_found(batch, BATCH_NOT_FOUND)
+        # 1. Delete linked class schedules
+        self.db.query(ClassSchedule).filter(ClassSchedule.batch_id == batch_id).delete()
+        
+        # 2. Delete linked batch-student associations
+        self.db.query(BatchStudent).filter(BatchStudent.batch_id == batch_id).delete()
 
+        # 3. Delete the batch itself
         self.db.delete(batch)
         self.db.commit()
 

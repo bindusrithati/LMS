@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from app.connectors.database_connector import get_db
 from app.services.dashboard_service import DashboardService
-from app.schemas.dashboard_schemas import DashboardStatsResponse
-from app.schemas.response_schema import ApiResponse
+from app.models.dashboard_models import DashboardStatsResponse
+from app.models.base_response_model import ApiResponse
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
+
 
 @router.get(
     "/stats",

@@ -7,7 +7,7 @@ class LoginRequest(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    token: str
+    access_token: str
 
 
 class ForgotPasswordRequest(BaseModel):

@@ -51,7 +51,7 @@ class AuthService:
     def generate_token_response(self, claims: dict) -> LoginResponse:
         try:
             token = jwt.encode(claims=claims, key=SECRET_KEY, algorithm=ALGORITHM)
-            return LoginResponse(token=token)
+            return LoginResponse(access_token=token)
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

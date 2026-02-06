@@ -7,9 +7,11 @@ from app.connectors.database_connector import Base, engine
 
 from app.routes.router import router as chat_router
 from app.routes.ws_chat import router as ws_chat_router
+from app.routes.dashboard_route import router as dashboard_router
 
 app = FastAPI()
 app.include_router(ws_chat_router)
+app.include_router(dashboard_router)
 
 
 setup_routes(app)

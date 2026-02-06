@@ -56,6 +56,7 @@ class BatchService:
             validate_data_not_found(False, ONE_OR_MORE_SYLLABUS_NOT_FOUND)
 
         new_batch = Batch(
+            name=request.name,
             syllabus_ids=list(set(request.syllabus_ids)),
             start_date=request.start_date,
             end_date=request.end_date,
@@ -87,6 +88,7 @@ class BatchService:
 
         return GetBatchResponse(
             id=batch.id,
+            name=batch.name,
             syllabus=syllabus,
             start_date=batch.start_date,
             end_date=batch.end_date,
@@ -155,6 +157,7 @@ class BatchService:
         if existing_syllabus_ids != len(request.syllabus_ids):
             validate_data_not_found(False, ONE_OR_MORE_SYLLABUS_NOT_FOUND)
 
+        batch.name = request.name
         batch.syllabus_ids = list(set(request.syllabus_ids))
         batch.start_date = request.start_date
         batch.end_date = request.end_date

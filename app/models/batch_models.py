@@ -7,6 +7,7 @@ from app.utils.enums import Days
 
 
 class BatchRequest(BaseModel):
+    name: Optional[str] = None
     syllabus_ids: Optional[List[int]] = None
     start_date: date
     end_date: date
@@ -16,6 +17,7 @@ class BatchRequest(BaseModel):
 
 class GetBatchResponse(BaseModel):
     id: int
+    name: Optional[str] = None
     syllabus: List[dict] = None
     start_date: date
     end_date: date

@@ -1,4 +1,5 @@
 import smtplib
+from typing import List, Optional
 from email.message import EmailMessage
 
 from dotenv import load_dotenv
@@ -39,20 +40,22 @@ class EmailService:
             server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
             server.send_message(msg)
 
-    def send_email(to_email: str, receiver_type: int):
+    @staticmethod
+    def send_email(subject: str, message: str, receiver_type: str, to_email: Optional[str] = None):
         msg = EmailMessage()
-        msg["Subject"] = "Test Email"
+        msg["Subject"] = subject
         msg["From"] = settings.SMTP_USERNAME
-        msg["To"] = to_email
+        
+        # If specific email provided, use it. Otherwise placeholder for group broadcast logic.
+        msg["To"] = to_email or "admin@lms-local.com" 
 
-        if receiver_type == 3:
-            url = settings.FRONTEND_MENTOR_URL
-        elif receiver_type == 1:
-            url = settings.FRONTEND_GUEST_URL
-        else:
-            raise ValueError("Invalid receiver_type")
+        # If it's a verification style message, we might still want HTML.
+        # But for admin compose, plain text is safer/easier.
+        msg.set_content(message)
 
-        msg.set_content(create_user_verification_email(url), subtype="html")
+        # For demo purposes, we log the intent. 
+        # Integration with real group broadcast would happen here.
+        print(f"Sending Email to {receiver_type}: {subject}")
 
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
             server.starttls()

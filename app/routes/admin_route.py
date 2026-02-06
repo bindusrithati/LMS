@@ -24,6 +24,8 @@ async def send_email(
     request: AdminEmailRequest,
 ) -> ApiResponse[SuccessMessageResponse]:
     return EmailService.send_email(
-        to_email=request.email,
+        subject=request.subject,
+        message=request.message,
         receiver_type=request.receiver_type,
+        to_email=request.email,
     )

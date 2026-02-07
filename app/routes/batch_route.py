@@ -182,6 +182,7 @@ async def delete_class_schedule_by_id(
 )
 async def get_batch_chat_history(
     batch_id: PositiveInt,
+    request_state: Request,
     service: BatchService = Depends(BatchService),
 ) -> ApiResponse[List[GetChatMessageResponse]]:
-    return ApiResponse(data=service.get_chat_history(batch_id))
+    return ApiResponse(data=service.get_chat_history(batch_id, request_state.state.user))

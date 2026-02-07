@@ -2,7 +2,7 @@ from typing import List
 from dataclasses import dataclass
 import json
 
-from fastapi import Depends
+from fastapi import Depends, status, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from app.entities.batch_student import BatchStudent
 from app.entities.syllabus import Syllabus
 from app.entities.chat import ChatMessage
 from app.entities.user import User
+from app.entities.student import Student
 from app.models.base_response_model import CreateResponse, SuccessMessageResponse
 from app.models.batch_models import (
     BatchRequest,
@@ -325,7 +326,32 @@ class BatchService:
         return SuccessMessageResponse(message=CLASS_SCHEDULE_DELETED_SUCCESSFULLY)
 
     # ---------------- GET CHAT HISTORY ----------------
-    def get_chat_history(self, batch_id: int) -> list[GetChatMessageResponse]:
+    def get_chat_history(self, batch_id: int, user: User) -> list[GetChatMessageResponse]:
+        # Check Authorization
+        is_authorized = False
+        if user.role in ["Admin", "SuperAdmin"]:
+            is_authorized = True
+        elif user.role == "Mentor":
+            batch = self.db.query(Batch).filter(Batch.id == batch_id, Batch.mentor == user.id).first()
+            if batch:
+                is_authorized = True
+        elif user.role == "Student":
+            student = self.db.query(Student).filter(Student.user_id == user.id).first()
+            if student:
+                enrollment = (
+                    self.db.query(BatchStudent)
+                    .filter(BatchStudent.batch_id == batch_id, BatchStudent.student_id == student.id)
+                    .first()
+                )
+                if enrollment:
+                    is_authorized = True
+        
+        if not is_authorized:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                detail="You are not authorized to view this chat."
+            )
+
         results = (
             self.db.query(ChatMessage, User)
             .join(User, ChatMessage.user_id == User.id)

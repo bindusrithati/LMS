@@ -20,6 +20,52 @@ async def batch_chat(websocket: WebSocket, batch_id: int):
         await websocket.close(code=1008)
         return
 
+    # ---------------- AUTHORIZATION CHECK ----------------
+    db = get_database()
+    is_authorized = False
+    try:
+        user_role = user.get("role")
+        user_id = user.get("user_id")
+
+        if user_role in ["Admin", "SuperAdmin"]:
+            is_authorized = True
+        
+        elif user_role == "Mentor":
+            from app.entities.batch import Batch
+            # Check if this mentor is assigned to the batch
+            batch = db.query(Batch).filter(Batch.id == batch_id, Batch.mentor == user_id).first()
+            if batch:
+                is_authorized = True
+        
+        elif user_role == "Student":
+            from app.entities.student import Student
+            from app.entities.batch_student import BatchStudent
+            # Get student profile
+            student = db.query(Student).filter(Student.user_id == user_id).first()
+            if student:
+                # Check enrollment
+                enrollment = db.query(BatchStudent).filter(
+                    BatchStudent.batch_id == batch_id,
+                    BatchStudent.student_id == student.id
+                ).first()
+                if enrollment:
+                    is_authorized = True
+
+        if not is_authorized:
+            print(f"Unauthorized chat access: User {user_id} ({user_role}) -> Batch {batch_id}")
+            db.close()
+            await websocket.close(code=1008)
+            return
+
+    except Exception as e:
+        print(f"Chat Auth Error: {e}")
+        db.close()
+        await websocket.close(code=1011)
+        return
+    
+    db.close()
+    # -----------------------------------------------------
+
     await manager.connect(batch_id, websocket)
 
     # Init payload

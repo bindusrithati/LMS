@@ -74,24 +74,7 @@ class StudentService:
         return SuccessMessageResponse(message=STUDENT_CREATED_SUCCESSFULLY)
 
     # ---------------- HELPER ----------------
-    def get_student_response(
-        self, student: Student, users: Dict[int, str]
-    ) -> GetStudentResponse:
-        return GetStudentResponse(
-            id=student.id,
-            name=users.get(student.user_id),
-            degree=student.degree,
-            specialization=student.specialization,
-            passout_year=student.passout_year,
-            city=student.city,
-            state=student.state,
-            referral_by=users.get(student.referral_by),
-            created_at=student.created_at,
-            created_by=users.get(student.created_by),
-            updated_at=student.updated_at,
-            updated_by=users.get(student.updated_by),
-            is_active=student.is_active,
-        )
+
 
     # ---------------- GET ALL STUDENTS (CACHED) ----------------
 
@@ -104,10 +87,36 @@ class StudentService:
             data = json.loads(cached)
             return [GetStudentResponse(**item) for item in data]
 
-        students = get_students(self.db)
+        StudentUser = aliased(User)
+        results = (
+            self.db.query(Student, StudentUser)
+            .join(StudentUser, Student.user_id == StudentUser.id)
+            .all()
+        )
+        
         users = get_all_users_dict(self.db)
 
-        response = [self.get_student_response(student, users) for student in students]
+        response = []
+        for student, user in results:
+            response.append(
+                GetStudentResponse(
+                    id=student.id,
+                    name=user.name,
+                    email=user.email,
+                    phone_number=user.phone_number,
+                    degree=student.degree,
+                    specialization=student.specialization,
+                    passout_year=student.passout_year,
+                    city=student.city,
+                    state=student.state,
+                    referral_by=users.get(student.referral_by),
+                    created_at=student.created_at,
+                    created_by=users.get(student.created_by),
+                    updated_at=student.updated_at,
+                    updated_by=users.get(student.updated_by),
+                    is_active=student.is_active,
+                )
+            )
 
         await redis_client.setex(  # ✅ await
             cache_key, 60, json.dumps([r.dict() for r in response], default=str)
@@ -126,8 +135,26 @@ class StudentService:
         student = get_student(self.db, student_id)
         validate_data_not_found(student, STUDENT_NOT_FOUND)
 
+        user = get_user_by_id(self.db, student.user_id)
         users = get_all_users_dict(self.db)
-        response = self.get_student_response(student, users)
+
+        response = GetStudentResponse(
+            id=student.id,
+            name=user.name,
+            email=user.email,
+            phone_number=user.phone_number,
+            degree=student.degree,
+            specialization=student.specialization,
+            passout_year=student.passout_year,
+            city=student.city,
+            state=student.state,
+            referral_by=users.get(student.referral_by),
+            created_at=student.created_at,
+            created_by=users.get(student.created_by),
+            updated_at=student.updated_at,
+            updated_by=users.get(student.updated_by),
+            is_active=student.is_active,
+        )
 
         await redis_client.setex(
             cache_key, 60, json.dumps(response.dict(), default=str)

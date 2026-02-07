@@ -17,6 +17,8 @@ class StudentRequest(BaseModel):
 class GetStudentResponse(BaseModel):
     id: int
     name: str
+    email: str
+    phone_number: str
     degree: str
     specialization: str
     passout_year: int

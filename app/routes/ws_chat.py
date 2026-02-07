@@ -7,6 +7,7 @@ from app.services.authorization import verify_ws_token
 from app.services.manager import manager
 from app.connectors.database_connector import get_database
 from app.entities.chat import ChatMessage
+from app.entities.user import User
 
 
 router = APIRouter(tags=["BATCH CHAT"])
@@ -26,6 +27,12 @@ async def batch_chat(websocket: WebSocket, batch_id: int):
     try:
         user_role = user.get("role")
         user_id = user.get("user_id")
+
+        # Fetch fresh user details from DB to ensure name is up-to-date
+        current_user_db = db.query(User).filter(User.id == user_id).first()
+        if current_user_db:
+            user["name"] = current_user_db.name
+
 
         if user_role in ["Admin", "SuperAdmin"]:
             is_authorized = True

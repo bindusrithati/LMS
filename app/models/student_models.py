@@ -52,14 +52,14 @@ class GetMappedBatchStudentResponse(BaseModel):
     class_amount: int
     mentor_amount: int
     balance_amount: Optional[int] = None
-    referral_by: str
+    referral_by: Optional[str] = None
     referral_percentage: float
     referral_amount: int
     joined_at: date
     created_at: datetime
-    created_by: str
+    created_by: Optional[str] = None
     updated_at: datetime
-    updated_by: str
+    updated_by: Optional[str] = None
 
 
 class UpdatedBatchStudentRequest(BaseModel):

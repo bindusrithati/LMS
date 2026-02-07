@@ -12,6 +12,9 @@ load_dotenv()
 print("SMTP_USERNAME =", settings.SMTP_USERNAME)
 
 
+from app.connectors.database_connector import get_database
+from app.entities.user import User
+
 class EmailService:
     @staticmethod
     def send_reset_password_email(to_email: str, token: str):
@@ -42,26 +45,53 @@ class EmailService:
 
     @staticmethod
     def send_email(subject: str, message: str, receiver_type: str, to_email: Optional[str] = None):
-        msg = EmailMessage()
-        msg["Subject"] = subject
-        msg["From"] = settings.SMTP_USERNAME
+        recipients = []
         
-        # If specific email provided, use it. Otherwise placeholder for group broadcast logic.
-        msg["To"] = to_email or "admin@lms-local.com" 
+        if to_email:
+            recipients.append(to_email)
+        else:
+            db = get_database()
+            try:
+                query = db.query(User).filter(User.is_active == True)
+                
+                if receiver_type.lower() == 'admin':
+                    query = query.filter(User.role == 'Admin')
+                elif receiver_type.lower() == 'mentor':
+                    query = query.filter(User.role == 'Mentor')
+                elif receiver_type.lower() == 'student':
+                    query = query.filter(User.role == 'Student')
+                
+                users = query.all()
+                recipients = [user.email for user in users if user.email]
+            finally:
+                db.close()
 
-        # If it's a verification style message, we might still want HTML.
-        # But for admin compose, plain text is safer/easier.
-        msg.set_content(message)
+        if not recipients:
+             return ApiResponse(
+                 data=SuccessMessageResponse(message="No recipients found")
+             )
 
-        # For demo purposes, we log the intent. 
-        # Integration with real group broadcast would happen here.
-        print(f"Sending Email to {receiver_type}: {subject}")
+        # Send emails
+        try:
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+                server.starttls()
+                server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+                
+                for recipient in recipients:
+                    try:
+                        msg = EmailMessage()
+                        msg["Subject"] = subject
+                        msg["From"] = settings.SMTP_USERNAME
+                        msg["To"] = recipient
+                        msg.set_content(message)
+                        server.send_message(msg)
+                    except Exception as e:
+                        print(f"Failed to send email to {recipient}: {e}")
+                        
+            return ApiResponse(
+                data=SuccessMessageResponse(message=f"Emails sent successfully to {len(recipients)} recipients")
+            )
+        except Exception as e:
+            print(f"SMTP Connection Error: {e}")
+            raise e
 
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-            server.starttls()
-            server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-            server.send_message(msg)
-
-        return ApiResponse(
-            data=SuccessMessageResponse(message="Email sent successfully")
-        )

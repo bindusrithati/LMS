@@ -17,8 +17,7 @@ def get_all_users_dict(db: Session) -> dict:
     return {user.id: user.name for user in users}
 
 
-def get_all_users_dict(db: Session) -> Dict[int, str]:
-    return {user.id: user.name for user in get_users(db)}
+
 
 
 def get_all_users() -> Dict[int, str]:

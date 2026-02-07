@@ -170,7 +170,7 @@ async def delete_class_schedule_by_id(
     service: BatchService = Depends(BatchService),
 ) -> ApiResponse[SuccessMessageResponse]:
     return ApiResponse(data=service.delete_schedule_by_id(schedule_id, batch_id))
-    return ApiResponse(data=service.delete_schedule_by_id(schedule_id, batch_id))
+
 
 
 # ---------------- GET CHAT HISTORY ----------------

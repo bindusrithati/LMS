@@ -28,7 +28,7 @@ from app.utils.helpers import (
     apply_filter,
     apply_pagination,
     apply_sorting,
-    get_all_users,
+    get_all_users_dict,
 )
 
 
@@ -73,7 +73,7 @@ class UserService:
             email=request.email,
             gender=request.gender,
             password=request.password,
-            role=request.role,
+            role=request.role.capitalize(),
             phone_number=request.phone_number,
             created_by=logged_in_user_id,
             updated_by=logged_in_user_id,
@@ -115,7 +115,7 @@ class UserService:
         order_by: str,
         page: int | None,
         page_size: int | None,
-    ) -> Tuple[List[User], int]:
+    ) -> Tuple[int, List[User]]:
         query = self.base_get_user_query()
 
         query = self.get_matched_user_based_on_search(query, search)
@@ -169,7 +169,7 @@ class UserService:
         order_by: str,
         page: int | None,
         page_size: int | None,
-    ) -> Tuple[List[GetUserDetailsResponse], int]:
+    ) -> Tuple[int, List[GetUserDetailsResponse]]:
         total_count, users_data = self.get_all_user_data(
             search=search,
             filter_by=filter_by,
@@ -180,7 +180,7 @@ class UserService:
             page_size=page_size,
         )
 
-        users = get_all_users()
+        users = get_all_users_dict(self.db)
 
         responses = [self.get_user_response(user, users) for user in users_data]
 
@@ -195,7 +195,7 @@ class UserService:
         order_by: str,
         page: int | None,
         page_size: int | None,
-    ) -> Tuple[List[GetUserDetailsResponse], int]:
+    ) -> Tuple[int, List[GetUserDetailsResponse]]:
         return self.get_user_responses(
             search=search,
             filter_by=filter_by,

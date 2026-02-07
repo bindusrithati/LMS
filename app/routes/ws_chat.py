@@ -65,6 +65,7 @@ async def batch_chat(websocket: WebSocket, batch_id: int):
     
     db.close()
     # -----------------------------------------------------
+    # -----------------------------------------------------
 
     await manager.connect(batch_id, websocket)
 

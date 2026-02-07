@@ -6,6 +6,11 @@ class RoleDistribution(BaseModel):
     value: int
     color: str
 
+
+class EnrollmentTrend(BaseModel):
+    month: str
+    students: int
+
 class DashboardStatsResponse(BaseModel):
     total_users: int
     total_students: int
@@ -14,3 +19,4 @@ class DashboardStatsResponse(BaseModel):
     active_batches: int
     total_batches: int
     role_distribution: List[RoleDistribution]
+    enrollment_trend: List[EnrollmentTrend]

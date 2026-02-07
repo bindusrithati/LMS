@@ -49,6 +49,46 @@ class DashboardService:
             RoleDistribution(name="Admins", value=total_admins, color="#1976d2"),
         ]
 
+        # 4. Student Enrollment Trend (Group by Month)
+        from sqlalchemy import extract
+        import calendar
+        from datetime import datetime
+
+        current_year = datetime.now().year
+        
+        # Initialize dictionary with 0 for all months
+        monthly_counts = {calendar.month_abbr[i]: 0 for i in range(1, 13)}
+
+        enrollment_data = (
+            self.db.query(
+                func.extract('month', User.created_at).label('month'),
+                func.count(User.id).label('count')
+            )
+            .filter(
+                User._User__role == Roles.Student.value,
+                User.is_active == True,
+                func.extract('year', User.created_at) == current_year
+            )
+            .group_by(func.extract('month', User.created_at))
+            .all()
+        )
+
+        for month_num, count in enrollment_data:
+            month_name = calendar.month_abbr[int(month_num)]
+            monthly_counts[month_name] = count
+
+        # Convert to list of EnrollmentTrend objects
+        from app.models.dashboard_models import EnrollmentTrend
+        
+        # Only show up to current month or all months? 
+        # Requirement says "Trend", usually means past data. 
+        # Let's show all months for this year as per typical dashboard requirements.
+        # Ensure correct order Jan -> Dec
+        enrollment_trend = [
+            EnrollmentTrend(month=m, students=monthly_counts[m]) 
+            for m in list(calendar.month_abbr)[1:]
+        ]
+
         return DashboardStatsResponse(
             total_users=total_users,
             total_students=total_students,
@@ -57,4 +97,5 @@ class DashboardService:
             active_batches=active_batches,
             total_batches=total_batches,
             role_distribution=role_distribution,
+            enrollment_trend=enrollment_trend,
         )

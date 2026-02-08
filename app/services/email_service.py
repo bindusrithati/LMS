@@ -4,7 +4,7 @@ from email.message import EmailMessage
 
 from dotenv import load_dotenv
 from app.config import settings
-from app.utils.email_util import create_user_verification_email
+from app.utils.email_util import create_user_verification_email, create_general_html_email
 from app.models.base_response_model import ApiResponse, SuccessMessageResponse
 
 load_dotenv()
@@ -18,6 +18,7 @@ from app.entities.user import User
 class EmailService:
     @staticmethod
     def send_reset_password_email(to_email: str, token: str):
+        # ... (keep existing implementation for reset password if needed, or update it too - but for now focused on admin email)
         reset_link = f"{settings.FRONTEND_RESET_URL}?token={token}"
 
         msg = EmailMessage()
@@ -44,7 +45,7 @@ class EmailService:
             server.send_message(msg)
 
     @staticmethod
-    def send_email(subject: str, message: str, receiver_type: str, to_email: Optional[str] = None):
+    def send_email(subject: str, message: str, receiver_type: Optional[str] = None, to_email: Optional[str] = None):
         recipients = []
         
         if to_email:
@@ -54,12 +55,13 @@ class EmailService:
             try:
                 query = db.query(User).filter(User.is_active == True)
                 
-                if receiver_type.lower() == 'admin':
+                if receiver_type and receiver_type.lower() == 'admin':
                     query = query.filter(User.role == 'Admin')
-                elif receiver_type.lower() == 'mentor':
+                elif receiver_type and receiver_type.lower() == 'mentor':
                     query = query.filter(User.role == 'Mentor')
-                elif receiver_type.lower() == 'student':
+                elif receiver_type and receiver_type.lower() == 'student':
                     query = query.filter(User.role == 'Student')
+                # If receiver_type is None or 'all', we fetch all active users
                 
                 users = query.all()
                 recipients = [user.email for user in users if user.email]
@@ -70,6 +72,9 @@ class EmailService:
              return ApiResponse(
                  data=SuccessMessageResponse(message="No recipients found")
              )
+
+        # Prepare HTML Content
+        html_content = create_general_html_email(subject, message)
 
         # Send emails
         try:
@@ -83,7 +88,7 @@ class EmailService:
                         msg["Subject"] = subject
                         msg["From"] = settings.SMTP_USERNAME
                         msg["To"] = recipient
-                        msg.set_content(message)
+                        msg.set_content(html_content, subtype='html') # Send as HTML
                         server.send_message(msg)
                     except Exception as e:
                         print(f"Failed to send email to {recipient}: {e}")

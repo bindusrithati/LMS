@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     FRONTEND_RESET_URL: str
     FRONTEND_MENTOR_URL: str
     FRONTEND_GUEST_URL: str
+    FRONTEND_URL: str = "http://localhost:5173" # Default for local dev
 
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"

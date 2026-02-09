@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Request, status
 from typing import List
+from pydantic import BaseModel, EmailStr
 
 from app.models.admin_models import AdminEmailRequest
 from app.models.base_response_model import ApiResponse, SuccessMessageResponse
@@ -29,3 +30,10 @@ async def send_email(
         receiver_type=request.receiver_type,
         to_email=request.email,
     )
+
+class InviteRequest(BaseModel):
+    email: EmailStr
+
+@router.post("/invite", response_model=ApiResponse[SuccessMessageResponse])
+async def invite_user(request: InviteRequest):
+    return EmailService.send_invitation_email(request.email)

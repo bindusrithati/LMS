@@ -100,3 +100,25 @@ class EmailService:
             print(f"SMTP Connection Error: {e}")
             raise e
 
+    @staticmethod
+    def send_invitation_email(to_email: str):
+        invitation_link = f"{settings.FRONTEND_URL}/register"
+        subject = "Invitation to Join LMS"
+        message = f"""
+            Dear User,
+
+            You are invited to join our Learning Management System.
+
+            Please click the link below to create your account:
+            {invitation_link}
+
+            We look forward to having you with us!
+        """
+        
+        # Use existing send_email logic which handles HTML wrapping
+        return EmailService.send_email(
+            subject=subject,
+            message=message,
+            to_email=to_email
+        )
+

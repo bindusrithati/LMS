@@ -70,17 +70,13 @@ class SyllabusService:
     async def get_all_syllabus(self) -> list[GetSyllabusResponse]:
         cache_key = "cache:syllabus:all"
         cached = await redis_client.get(cache_key)
-
         if cached:
-            return [
-                GetSyllabusResponse(**item)
-                for item in json.loads(cached)
-            ]
+            return [GetSyllabusResponse(**item) for item in json.loads(cached)]
 
         syllabus_list = get_all_syllabus(self.db)
         response = [self.get_syllabus_response(syllabus) for syllabus in syllabus_list]
 
-        redis_client.setex(
+        await redis_client.setex(
             cache_key, 120, json.dumps([r.dict() for r in response], default=str)
         )
         return response
@@ -99,7 +95,9 @@ class SyllabusService:
 
         response = self.get_syllabus_response(syllabus)
 
-        redis_client.setex(cache_key, 120, json.dumps(response.dict(), default=str))
+        await redis_client.setex(
+            cache_key, 120, json.dumps(response.dict(), default=str)
+        )
 
         return response
 

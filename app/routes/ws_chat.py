@@ -8,7 +8,9 @@ from app.services.manager import manager
 from app.connectors.database_connector import get_database
 from app.entities.chat import ChatMessage
 from app.entities.user import User
-
+from app.entities.batch import Batch
+from app.entities.student import Student
+from app.entities.batch_student import BatchStudent
 
 router = APIRouter(tags=["BATCH CHAT"])
 
@@ -33,33 +35,41 @@ async def batch_chat(websocket: WebSocket, batch_id: int):
         if current_user_db:
             user["name"] = current_user_db.name
 
-
         if user_role in ["Admin", "SuperAdmin"]:
             is_authorized = True
-        
+
         elif user_role == "Mentor":
-            from app.entities.batch import Batch
+
             # Check if this mentor is assigned to the batch
-            batch = db.query(Batch).filter(Batch.id == batch_id, Batch.mentor == user_id).first()
+            batch = (
+                db.query(Batch)
+                .filter(Batch.id == batch_id, Batch.mentor == user_id)
+                .first()
+            )
             if batch:
                 is_authorized = True
-        
+
         elif user_role == "Student":
-            from app.entities.student import Student
-            from app.entities.batch_student import BatchStudent
+
             # Get student profile
             student = db.query(Student).filter(Student.user_id == user_id).first()
             if student:
                 # Check enrollment
-                enrollment = db.query(BatchStudent).filter(
-                    BatchStudent.batch_id == batch_id,
-                    BatchStudent.student_id == student.id
-                ).first()
+                enrollment = (
+                    db.query(BatchStudent)
+                    .filter(
+                        BatchStudent.batch_id == batch_id,
+                        BatchStudent.student_id == student.id,
+                    )
+                    .first()
+                )
                 if enrollment:
                     is_authorized = True
 
         if not is_authorized:
-            print(f"Unauthorized chat access: User {user_id} ({user_role}) -> Batch {batch_id}")
+            print(
+                f"Unauthorized chat access: User {user_id} ({user_role}) -> Batch {batch_id}"
+            )
             db.close()
             await websocket.close(code=1008)
             return
@@ -69,7 +79,7 @@ async def batch_chat(websocket: WebSocket, batch_id: int):
         db.close()
         await websocket.close(code=1011)
         return
-    
+
     db.close()
     # -----------------------------------------------------
     # -----------------------------------------------------
@@ -93,14 +103,14 @@ async def batch_chat(websocket: WebSocket, batch_id: int):
             message_text = data.get("message")
             if not message_text:
                 continue
-            
+
             # Save message to database
             db = get_database()
             new_message = ChatMessage(
                 batch_id=batch_id,
                 user_id=user["user_id"],
                 message=message_text,
-                timestamp=datetime.now()
+                timestamp=datetime.now(),
             )
             db.add(new_message)
             db.commit()

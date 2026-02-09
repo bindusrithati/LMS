@@ -18,6 +18,7 @@ from app.models.batch_models import (
 )
 from app.services.batch_service import BatchService
 from app.utils.rate_limiter import rate_limiter
+from app.config import settings
 
 router = APIRouter(prefix="/batches", tags=["BATCH MANAGEMENT SERVICE"])
 
@@ -28,7 +29,7 @@ router = APIRouter(prefix="/batches", tags=["BATCH MANAGEMENT SERVICE"])
     response_model=ApiResponse[CreateResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Create a new batch",
-    dependencies=[Depends(rate_limiter("batch:create", 5, 60))],
+    dependencies=[Depends(rate_limiter("batch:create", settings.RATE_LIMIT_STANDARD, settings.RATE_LIMIT_WINDOW))],
 )
 async def create_batch(
     request_state: Request,
@@ -74,7 +75,7 @@ async def get_batch_by_id(
     response_model=ApiResponse[CreateResponse],
     status_code=status.HTTP_200_OK,
     summary="Update batch by id",
-    dependencies=[Depends(rate_limiter("batch:update", 5, 60))],
+    dependencies=[Depends(rate_limiter("batch:update", settings.RATE_LIMIT_STANDARD, settings.RATE_LIMIT_WINDOW))],
 )
 async def update_batch_by_id(
     request_state: Request,
@@ -94,7 +95,7 @@ async def update_batch_by_id(
     response_model=ApiResponse[CreateResponse],
     status_code=status.HTTP_200_OK,
     summary="Delete batch by id",
-    dependencies=[Depends(rate_limiter("batch:delete", 5, 60))],
+    dependencies=[Depends(rate_limiter("batch:delete", settings.RATE_LIMIT_STANDARD, settings.RATE_LIMIT_WINDOW))],
 )
 async def delete_batch_by_id(
     batch_id: PositiveInt,
@@ -108,7 +109,7 @@ async def delete_batch_by_id(
     "/{batch_id}/schedule-class",
     response_model=ApiResponse[CreateResponse],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(rate_limiter("batch:schedule:create", 5, 60))],
+    dependencies=[Depends(rate_limiter("batch:schedule:create", settings.RATE_LIMIT_STANDARD, settings.RATE_LIMIT_WINDOW))],
 )
 async def create_class_schedule(
     batch_id: PositiveInt,
@@ -138,7 +139,7 @@ async def get_class_schedules_by_batch(
     "/{batch_id}/schedule-class/{schedule_id}",
     response_model=ApiResponse[SuccessMessageResponse],
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(rate_limiter("batch:schedule:update", 5, 60))],
+    dependencies=[Depends(rate_limiter("batch:schedule:update", settings.RATE_LIMIT_STANDARD, settings.RATE_LIMIT_WINDOW))],
 )
 async def update_class_schedule_by_id(
     schedule_id: PositiveInt,
@@ -162,7 +163,7 @@ async def update_class_schedule_by_id(
     "/{batch_id}/schedule-class/{schedule_id}",
     response_model=ApiResponse[SuccessMessageResponse],
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(rate_limiter("batch:schedule:delete", 5, 60))],
+    dependencies=[Depends(rate_limiter("batch:schedule:delete", settings.RATE_LIMIT_STANDARD, settings.RATE_LIMIT_WINDOW))],
 )
 async def delete_class_schedule_by_id(
     schedule_id: PositiveInt,

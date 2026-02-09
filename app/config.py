@@ -27,5 +27,15 @@ class Settings(BaseSettings):
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
 
+    # Rate Limiting
+    RATE_LIMIT_STANDARD: int = 5
+    RATE_LIMIT_SENSITIVE: int = 3
+    RATE_LIMIT_WINDOW: int = 60
+
+    # Caching
+    CACHE_EXPIRY_SYLLABUS: int = 120
+    CACHE_EXPIRY_STUDENT: int = 60
+    CACHE_EXPIRY_BATCH: int = 60
+
 
 settings = Settings()

@@ -19,6 +19,7 @@ from app.utils.db_queries import get_all_syllabus, get_syllabus, get_syllabus_by
 from app.utils.helpers import get_all_users_dict
 from app.utils.validation import validate_data_exits, validate_data_not_found
 from app.utils.redis_client import redis_client
+from app.config import settings
 
 
 @dataclass
@@ -77,7 +78,7 @@ class SyllabusService:
         response = [self.get_syllabus_response(syllabus) for syllabus in syllabus_list]
 
         await redis_client.setex(
-            cache_key, 120, json.dumps([r.dict() for r in response], default=str)
+            cache_key, settings.CACHE_EXPIRY_SYLLABUS, json.dumps([r.dict() for r in response], default=str)
         )
         return response
 
@@ -96,7 +97,7 @@ class SyllabusService:
         response = self.get_syllabus_response(syllabus)
 
         await redis_client.setex(
-            cache_key, 120, json.dumps(response.dict(), default=str)
+            cache_key, settings.CACHE_EXPIRY_SYLLABUS, json.dumps(response.dict(), default=str)
         )
 
         return response

@@ -11,6 +11,8 @@ from app.models.base_response_model import ApiResponse, SuccessMessageResponse
 from app.services.auth_service import AuthService
 from app.utils.rate_limiter import rate_limiter
 
+from app.config import settings
+
 router = APIRouter(tags=["AUTHENTICATION MANAGEMENT SERVICE"])
 
 
@@ -19,7 +21,7 @@ router = APIRouter(tags=["AUTHENTICATION MANAGEMENT SERVICE"])
     "/login",
     response_model=ApiResponse[LoginResponse],
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(rate_limiter("auth:login", 5, 60))],
+    dependencies=[Depends(rate_limiter("auth:login", settings.RATE_LIMIT_STANDARD, settings.RATE_LIMIT_WINDOW))],
 )
 async def login(
     request: LoginRequest,
@@ -33,7 +35,7 @@ async def login(
     "/forgot-password",
     response_model=ApiResponse[SuccessMessageResponse],
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(rate_limiter("auth:forgot-password", 3, 60))],
+    dependencies=[Depends(rate_limiter("auth:forgot-password", settings.RATE_LIMIT_SENSITIVE, settings.RATE_LIMIT_WINDOW))],
 )
 async def forgot_password(
     request: ForgotPasswordRequest,
@@ -47,7 +49,7 @@ async def forgot_password(
     "/reset-password",
     response_model=ApiResponse[SuccessMessageResponse],
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(rate_limiter("auth:reset-password", 3, 60))],
+    dependencies=[Depends(rate_limiter("auth:reset-password", settings.RATE_LIMIT_SENSITIVE, settings.RATE_LIMIT_WINDOW))],
 )
 async def reset_password(
     request: ResetPasswordRequest,
@@ -65,7 +67,7 @@ async def reset_password(
     "/register",
     response_model=ApiResponse[SuccessMessageResponse],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(rate_limiter("auth:register", 3, 60))],
+    dependencies=[Depends(rate_limiter("auth:register", settings.RATE_LIMIT_SENSITIVE, settings.RATE_LIMIT_WINDOW))],
 )
 async def register(
     request: RegisterRequest,

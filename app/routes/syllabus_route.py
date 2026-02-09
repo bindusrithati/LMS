@@ -6,6 +6,7 @@ from app.models.base_response_model import ApiResponse, SuccessMessageResponse
 from app.models.syllabus_models import GetSyllabusResponse, SyllabusRequest
 from app.services.syllabus_service import SyllabusService
 from app.utils.rate_limiter import rate_limiter
+from app.config import settings
 
 router = APIRouter(prefix="/syllabus", tags=["SYLLABUS MANAGEMENT SERVICE"])
 
@@ -16,7 +17,7 @@ router = APIRouter(prefix="/syllabus", tags=["SYLLABUS MANAGEMENT SERVICE"])
     response_model=ApiResponse[SuccessMessageResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Create a new syllabus",
-    dependencies=[Depends(rate_limiter("syllabus:create", 5, 60))],
+    dependencies=[Depends(rate_limiter("syllabus:create", settings.RATE_LIMIT_STANDARD, settings.RATE_LIMIT_WINDOW))],
 )
 async def create_syllabus(
     request_state: Request,
@@ -60,7 +61,7 @@ async def get_syllabus_by_id(
     response_model=ApiResponse[SuccessMessageResponse],
     status_code=status.HTTP_200_OK,
     summary="Update syllabus by id",
-    dependencies=[Depends(rate_limiter("syllabus:update", 5, 60))],
+    dependencies=[Depends(rate_limiter("syllabus:update", settings.RATE_LIMIT_STANDARD, settings.RATE_LIMIT_WINDOW))],
 )
 async def update_syllabus_by_id(
     request_state: Request,
@@ -80,7 +81,7 @@ async def update_syllabus_by_id(
     response_model=ApiResponse[SuccessMessageResponse],
     status_code=status.HTTP_200_OK,
     summary="Delete syllabus by id",
-    dependencies=[Depends(rate_limiter("syllabus:delete", 5, 60))],
+    dependencies=[Depends(rate_limiter("syllabus:delete", settings.RATE_LIMIT_STANDARD, settings.RATE_LIMIT_WINDOW))],
 )
 async def delete_syllabus_by_id(
     syllabus_id: PositiveInt,

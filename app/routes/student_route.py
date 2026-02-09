@@ -13,6 +13,7 @@ from app.models.student_models import (
 )
 from app.services.student_service import StudentService
 from app.utils.rate_limiter import rate_limiter
+from app.config import settings
 
 router = APIRouter(prefix="/students", tags=["STUDENT MANAGEMENT SERVICE"])
 
@@ -23,7 +24,7 @@ router = APIRouter(prefix="/students", tags=["STUDENT MANAGEMENT SERVICE"])
     response_model=ApiResponse[SuccessMessageResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Create a new student",
-    dependencies=[Depends(rate_limiter("students:create", 5, 60))],
+    dependencies=[Depends(rate_limiter("students:create", settings.RATE_LIMIT_STANDARD, settings.RATE_LIMIT_WINDOW))],
 )
 async def create_student(
     request_state: Request,

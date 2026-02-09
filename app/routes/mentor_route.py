@@ -7,6 +7,7 @@ from app.models.mentor_models import (
 )
 from app.services.mentor_service import MentorService
 from app.utils.rate_limiter import rate_limiter
+from app.config import settings
 
 router = APIRouter(
     prefix="/mentors",
@@ -19,7 +20,7 @@ router = APIRouter(
     "/profile",
     response_model=ApiResponse[SuccessMessageResponse],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(rate_limiter("mentors:create", 5, 60))],
+    dependencies=[Depends(rate_limiter("mentors:create", settings.RATE_LIMIT_STANDARD, settings.RATE_LIMIT_WINDOW))],
 )
 async def create_mentor_profile(
     request_state: Request,

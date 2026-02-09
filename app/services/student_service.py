@@ -41,6 +41,7 @@ from app.utils.db_queries import (
 from app.utils.helpers import get_all_users_dict
 from app.utils.validation import validate_data_exits, validate_data_not_found
 from app.utils.redis_client import redis_client
+from app.config import settings
 
 
 @dataclass
@@ -119,7 +120,7 @@ class StudentService:
             )
 
         await redis_client.setex(  # ✅ await
-            cache_key, 60, json.dumps([r.dict() for r in response], default=str)
+            cache_key, settings.CACHE_EXPIRY_STUDENT, json.dumps([r.dict() for r in response], default=str)
         )
 
         return response
@@ -157,7 +158,7 @@ class StudentService:
         )
 
         await redis_client.setex(
-            cache_key, 60, json.dumps(response.dict(), default=str)
+            cache_key, settings.CACHE_EXPIRY_STUDENT, json.dumps(response.dict(), default=str)
         )
         return response
 
@@ -284,7 +285,7 @@ class StudentService:
         ]
 
         await redis_client.setex(
-            cache_key, 60, json.dumps([r.dict() for r in response], default=str)
+            cache_key, settings.CACHE_EXPIRY_BATCH, json.dumps([r.dict() for r in response], default=str)
         )
         return response
 
@@ -311,7 +312,7 @@ class StudentService:
         )
 
         await redis_client.setex(
-            cache_key, 60, json.dumps(response.dict(), default=str)
+            cache_key, settings.CACHE_EXPIRY_BATCH, json.dumps(response.dict(), default=str)
         )
         return response
 

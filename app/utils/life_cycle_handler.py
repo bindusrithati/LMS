@@ -26,7 +26,7 @@ def start_dramatique_process():
 def __on_app_started():
     DatabaseUpdateService.upgrade_public_schema()
     if not os.getenv("IS_DOCKER"):
-        start_dramatique_process()  
+        start_dramatique_process()
 
 
 def __on_app_finished():

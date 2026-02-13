@@ -10,6 +10,7 @@ from app.models.base_response_model import SuccessMessageResponse
 from app.models.guest_models import GuestRequest, GetGuestResponse
 from app.utils.constants import (
     GUEST_CREATED_SUCCESSFULLY,
+    GUEST_DELETED_SUCCESSFULLY,
     GUEST_NOT_FOUND,
 )
 from app.utils.validation import validate_data_not_found
@@ -63,3 +64,13 @@ class GuestService:
             purpose=guest.purpose,
             created_at=guest.created_at,
         )
+
+    # ---------------- DELETE ----------------
+    def delete_guest(self, guest_id: int) -> SuccessMessageResponse:
+        guest = self.db.query(Guest).filter(Guest.id == guest_id).first()
+        validate_data_not_found(guest, GUEST_NOT_FOUND)
+
+        self.db.delete(guest)
+        self.db.commit()
+
+        return SuccessMessageResponse(message=GUEST_DELETED_SUCCESSFULLY)

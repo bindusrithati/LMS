@@ -49,3 +49,16 @@ async def get_guest_by_id(
 ):
     data = service.get_guest_by_id(guest_id)
     return ApiResponse(data=data)
+
+
+# ---------------- DELETE GUEST ----------------
+@router.delete(
+    "/{guest_id}",
+    response_model=ApiResponse[SuccessMessageResponse],
+)
+async def delete_guest(
+    guest_id: int,
+    service: GuestService = Depends(GuestService),
+):
+    data = service.delete_guest(guest_id)
+    return ApiResponse(data=data)

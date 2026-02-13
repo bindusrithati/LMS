@@ -13,6 +13,7 @@ from app.models.auth_models import (
 from .user_service import UserService
 from app.services.email_service import EmailService
 
+
 from app.utils.auth_dependencies import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     ALGORITHM,
@@ -80,7 +81,6 @@ class AuthService:
     # =========================================================
     # NEW: FORGOT PASSWORD
     # =========================================================
-    from app.services.email_service import EmailService
 
     def forgot_password(self, email: str):
         """

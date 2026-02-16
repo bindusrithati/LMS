@@ -12,6 +12,7 @@ from app.models.user_models import (
     UserCreationResponse,
     GetUserDetailsResponse,
     UserInfoResponse,
+    UserUpdateRequest,
 )
 from app.utils.constants import (
     EMAIL_ALREADY_EXISTS,
@@ -84,6 +85,33 @@ class UserService:
         self.db.refresh(user)
 
         return UserCreationResponse(id=user.id, message=USER_CREATED_SUCCESSFULLY)
+
+    def update_user(
+        self, user_id: int, request: UserUpdateRequest, logged_in_user_id: int
+    ) -> UserCreationResponse:
+        user = get_user_by_id(self.db, user_id)
+        self.validate_user_details(user)
+
+        # Check if email is being changed and if it exists
+        if user.email != request.email:
+            self._validate_email_not_exists(request.email)
+
+        # Check if phone is being changed and if it exists
+        if user.phone_number != request.phone_number:
+            self._validate_phone_not_exists(request.phone_number)
+
+        user.name = request.name
+        user.email = request.email
+        user.gender = request.gender
+        user.role = request.role.capitalize()
+        user.phone_number = request.phone_number
+        user.is_active = request.is_active
+        user.updated_by = logged_in_user_id
+
+        self.db.commit()
+        self.db.refresh(user)
+
+        return UserCreationResponse(id=user.id, message="User updated successfully")
 
     def base_get_user_query(self):
         return self.db.query(User)

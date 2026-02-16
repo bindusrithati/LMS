@@ -12,6 +12,15 @@ class UserCreationRequest(BaseModel):
     phone_number: str
 
 
+class UserUpdateRequest(BaseModel):
+    name: str
+    email: EmailStr
+    gender: str
+    role: str
+    phone_number: str
+    is_active: bool
+
+
 class UserCreationResponse(BaseModel):
     id: int
     message: str

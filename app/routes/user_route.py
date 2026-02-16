@@ -9,6 +9,7 @@ from app.models.user_models import (
     UserCreationResponse,
     GetUserDetailsResponse,
     UserInfoResponse,
+    UserUpdateRequest,
 )
 from app.services.user_service import UserService
 from app.utils.constants import UPDATED_AT
@@ -30,6 +31,21 @@ async def create_user(
 ) -> ApiResponse[UserCreationResponse]:
     logged_in_user_id = request_state.state.user.id
     return ApiResponse(data=service.create_user(logged_in_user_id, request))
+
+
+@router.put(
+    "/{user_id}",
+    response_model=ApiResponse[UserCreationResponse],
+    status_code=status.HTTP_200_OK,
+)
+async def update_user(
+    user_id: int,
+    request_state: Request,
+    request: UserUpdateRequest,
+    service: UserService = Depends(UserService),
+) -> ApiResponse[UserCreationResponse]:
+    logged_in_user_id = request_state.state.user.id
+    return ApiResponse(data=service.update_user(user_id, request, logged_in_user_id))
 
 
 @router.get(

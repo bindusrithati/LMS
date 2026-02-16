@@ -6,15 +6,15 @@ from app.models.auth_models import (
 from app.main import app
 class TestBase:
     client: TestClient
-    superadmin_user_credentials = LoginRequest(userName="superadmin@unittest.com",password="superadminPasswd")
-    valid_user_credentials = LoginRequest(userName="admin@unittest.com",password="adminPasswd")
-    invalid_user_credentials = LoginRequest(userName="invaliduser@unittest.com",password="invalid")
+    superadmin_user_credentials = LoginRequest(email="superadmin@unittest.com",password="superadminPasswd")
+    valid_user_credentials = LoginRequest(email="admin@unittest.com",password="adminPasswd")
+    invalid_user_credentials = LoginRequest(email="invaliduser@unittest.com",password="invalid")
 
     def login_as_super_admin(self):
         login_result = self.client.post('/login', data=self.superadmin_user_credentials.model_dump_json())
         login_result.raise_for_status()
         response = LoginResponse(**login_result.json())
-        assert response.name == self.superadmin_user_credentials.userName.split('@')[0]
+        assert response.name == self.superadmin_user_credentials.email.split('@')[0]
         assert response.role == 'SuperAdmin'
         assert response.id == 1
         assert response.contact == '0987654321'

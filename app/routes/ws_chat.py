@@ -86,7 +86,7 @@ async def batch_chat(websocket: WebSocket, batch_id: int):
 
     await manager.connect(batch_id, websocket)
 
-    # Init payload
+    # 1. Notify the user they connected
     await websocket.send_json(
         {
             "type": "init",
@@ -94,6 +94,17 @@ async def batch_chat(websocket: WebSocket, batch_id: int):
             "user_name": user["name"],
             "user_role": user["role"],
         }
+    )
+
+    # 2. Notify OTHERS that a user joined
+    await manager.broadcast(
+        batch_id,
+        {
+            "type": "join",
+            "user_id": user["user_id"],
+            "user_name": user["name"],
+            "timestamp": datetime.now().isoformat(),
+        },
     )
 
     try:

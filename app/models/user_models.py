@@ -30,8 +30,8 @@ class GetUserDetailsResponse(BaseModel):
     id: int
     name: str
     email: str
-    gender: str
-    phone_number: str
+    gender: Optional[str] = None
+    phone_number: Optional[str] = None
     role: str
     created_at: datetime
     created_by: Optional[str] = None

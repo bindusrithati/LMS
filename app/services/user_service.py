@@ -238,8 +238,8 @@ class UserService:
         user = get_user_by_id(self.db, user_id)
         self.validate_user_details(user)
 
-        # users = get_all_users()
-        return user  # self.get_user_response(user, users)
+        users = get_all_users_dict(self.db)
+        return self.get_user_response(user, users)
 
     def get_user_info(self, request_state: Request):
         return UserInfoResponse(

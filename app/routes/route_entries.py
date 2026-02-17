@@ -6,7 +6,7 @@ from . import (
     user_route,
     mentor_route,
     guest_route,
-    ws_chat,
+
     admin_route,
 )
 
@@ -19,7 +19,7 @@ PROTECTED_ROUTES = [
     syllabus_route.router,
     batch_route.router,
     student_route.router,
-    ws_chat.router,
+
     mentor_route.router,
     admin_route.router,
 ]

@@ -5,7 +5,7 @@ from app.utils.life_cycle_handler import setup_event_handlers
 from app.utils.middlewares import setup_middlewares
 from app.connectors.database_connector import Base, engine
 
-from app.routes.router import router as chat_router
+
 from app.routes.ws_chat import router as ws_chat_router
 from app.routes.dashboard_route import router as dashboard_router
 
